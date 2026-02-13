@@ -9,8 +9,7 @@ echo "🚀 Starting Celery Worker..."
 echo "============================================"
 
 # Activate virtual environment
-source venv/bin/activate
-
+venv\Scripts\activate
 # Export Django settings
 export DJANGO_SETTINGS_MODULE=report_hub.settings.local
 

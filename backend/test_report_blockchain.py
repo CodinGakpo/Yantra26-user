@@ -93,6 +93,15 @@ def create_test_report(user):
     """Create a test issue report"""
     print_section("Creating Test Report")
     
+    import random
+    import string
+    from datetime import datetime
+
+    # Generate a unique tracking_id: e.g., TMP + YYMMDD + 4 random chars
+    date_str = datetime.now().strftime('%y%m%d')
+    rand_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    tracking_id = f"TMP{date_str}{rand_str}"[:8]  # Ensure max_length=8
+
     report_data = {
         'user': user,
         'issue_title': 'Pothole on Main Street',
@@ -100,9 +109,10 @@ def create_test_report(user):
         'issue_description': 'Large pothole causing traffic issues. Approximately 2 feet wide and 6 inches deep.',
         'image_url': 'reports/test-image-key.jpg',
         'department': 'Public Works Department',
-        'confidence_score': 0.95
+        'confidence_score': 0.95,
+        'tracking_id': tracking_id
     }
-    
+
     try:
         report = IssueReport.objects.create(**report_data)
         print(f"✓ Report created successfully")
