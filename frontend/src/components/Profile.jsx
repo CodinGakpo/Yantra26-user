@@ -33,6 +33,9 @@ function Profile() {
     addr: "Not Verified",
     lastUpdated: "Not Verified",
     isVerified: false,
+    trustScore: 100,
+    deactivatedUntil: null,
+    isTemporarilyDeactivated: false,
   });
 
   // TEST-ONLY Aadhaar numbers
@@ -137,6 +140,10 @@ function Profile() {
           : "Not provided";
 
         const isVerified = profile.is_aadhaar_verified || false;
+        const trustScore = profile.trust_score ?? 100;
+        const isTemporarilyDeactivated =
+          profile.is_temporarily_deactivated || false;
+        const deactivatedUntil = profile.deactivated_until || null;
 
         setProfileData({
           firstName: firstName || "Not provided",
@@ -148,6 +155,9 @@ function Profile() {
           addr: address,
           lastUpdated: formattedUpdated,
           isVerified: isVerified,
+          trustScore,
+          isTemporarilyDeactivated,
+          deactivatedUntil,
         });
 
         if (isVerified && aadhaar?.aadhaar_number) {
@@ -278,6 +288,37 @@ function Profile() {
                     basic details will be securely fetched from the Aadhaar database.
                   </p>
                 </div>
+              </div>
+
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Trust Score
+                  </p>
+                  <p className="text-2xl font-black text-gray-900">
+                    {profileData.trustScore} / 110
+                  </p>
+                </div>
+                {profileData.isTemporarilyDeactivated ? (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm font-semibold">
+                    Account activates on{" "}
+                    {new Date(profileData.deactivatedUntil).toLocaleString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      }
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm font-semibold">
+                    Account Active
+                  </div>
+                )}
               </div>
 
               {/* Verification Section */}
