@@ -30,7 +30,6 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-*/migrations
 # Virtual environments
 virtualenv/
 venv/
