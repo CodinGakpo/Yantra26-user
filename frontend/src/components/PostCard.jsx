@@ -6,6 +6,8 @@ import {
   ImageOff,
   CheckCircle,
   X,
+  ThumbsUp,
+  ThumbsDown
 } from "lucide-react";
 
 function PostCard({ post }) {
@@ -118,7 +120,11 @@ function PostCard({ post }) {
             image={beforeImage}
             loading={loadingImages}
             onError={() => setBeforeImage(null)}
-            onPreview={setPreviewImage}
+            onPreview={(e) => {
+              // Stop propagation to prevent opening the modal when clicking Preview
+              e.stopPropagation(); 
+              setPreviewImage(e.target.src);
+            }}
             badgeColor="bg-red-100 text-red-700 border-red-300"
           />
 
@@ -127,20 +133,43 @@ function PostCard({ post }) {
             image={afterImage}
             loading={loadingImages}
             onError={() => setAfterImage(null)}
-            onPreview={setPreviewImage}
+            onPreview={(e) => {
+              e.stopPropagation();
+              setPreviewImage(e.target.src);
+            }}
             badgeColor="bg-green-100 text-green-700 border-green-300"
           />
         </div>
       </div>
 
+      {/* Social Stats Footer (Optional but recommended) */}
+      {(post.likes_count !== undefined || post.dislikes_count !== undefined) && (
+         <div className="px-6 md:px-8 py-3 bg-white border-t border-gray-100 flex items-center gap-6 text-gray-500 text-sm font-medium">
+            <div className="flex items-center gap-2">
+                <ThumbsUp className="w-4 h-4" /> 
+                {post.likes_count || 0}
+            </div>
+            <div className="flex items-center gap-2">
+                <ThumbsDown className="w-4 h-4" /> 
+                {post.dislikes_count || 0}
+            </div>
+         </div>
+      )}
+
       {/* Image Preview Modal */}
       {previewImage && (
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => setPreviewImage(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPreviewImage(null);
+          }}
         >
           <button
-            onClick={() => setPreviewImage(null)}
+            onClick={(e) => {
+                e.stopPropagation();
+                setPreviewImage(null);
+            }}
             className="absolute top-4 right-4 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
           >
             <X className="w-6 h-6" />
@@ -180,7 +209,7 @@ function ImageBox({ title, image, loading, onError, onPreview, badgeColor }) {
         className={`border-2 border-gray-300 rounded-xl aspect-video w-full bg-white flex items-center justify-center overflow-hidden transition-all ${
           image ? "cursor-pointer hover:border-emerald-400 hover:shadow-md" : ""
         }`}
-        onClick={() => image && onPreview(image)}
+        onClick={(e) => image && onPreview(e)}
       >
         {loading ? (
           <div className="flex flex-col items-center text-gray-400">

@@ -1,13 +1,14 @@
-from rest_framework import generics, permissions, status
-from rest_framework.generics import ListAPIView
+from rest_framework import generics, permissions, status, views
+from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.pagination import CursorPagination
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny,IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import IssueHistorySerializer
+from django.shortcuts import get_object_or_404
+from .serializers import IssueHistorySerializer, CommentSerializer
 from user_profile.models import UserProfile
-from .models import IssueReport
+from .models import IssueReport, Comment
 from .serializers import IssueReportSerializer
 from django.conf import settings
 import boto3
@@ -194,3 +195,77 @@ class UserIssueHistoryView(generics.ListAPIView):
         return IssueReport.objects.filter(
             user=self.request.user
         ).order_by("-issue_date")
+
+class CommunityResolvedIssuesView(ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = IssueReportSerializer
+    pagination_class = CommunityCursorPagination
+
+    def get_queryset(self):
+        return IssueReport.objects.filter(
+            status="resolved"
+        ).order_by("-updated_at")
+
+class UserIssueHistoryView(generics.ListAPIView):
+    serializer_class = IssueHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return IssueReport.objects.filter(
+            user=self.request.user
+        ).order_by("-issue_date")
+
+class CommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        report_id = self.kwargs.get('report_id')
+        return Comment.objects.filter(report_id=report_id)
+
+    def perform_create(self, serializer):
+        report_id = self.kwargs.get('report_id')
+        report = get_object_or_404(IssueReport, id=report_id)
+        serializer.save(user=self.request.user, report=report)
+
+class ToggleLikeView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, report_id):
+        report = get_object_or_404(IssueReport, id=report_id)
+        user = request.user
+        
+        if report.likes.filter(id=user.id).exists():
+            report.likes.remove(user)
+            liked = False
+        else:
+            report.likes.add(user)
+            report.dislikes.remove(user) # Remove dislike if exists
+            liked = True
+            
+        return Response({
+            "liked": liked, 
+            "likes_count": report.likes.count(),
+            "dislikes_count": report.dislikes.count()
+        })
+
+class ToggleDislikeView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, report_id):
+        report = get_object_or_404(IssueReport, id=report_id)
+        user = request.user
+        
+        if report.dislikes.filter(id=user.id).exists():
+            report.dislikes.remove(user)
+            disliked = False
+        else:
+            report.dislikes.add(user)
+            report.likes.remove(user) # Remove like if exists
+            disliked = True
+            
+        return Response({
+            "disliked": disliked, 
+            "likes_count": report.likes.count(),
+            "dislikes_count": report.dislikes.count()
+        })
