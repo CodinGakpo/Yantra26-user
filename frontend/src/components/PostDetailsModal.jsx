@@ -20,6 +20,14 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const commentSectionRef = useRef(null);
 
+  // Sync with parent prop updates - CRITICAL for consistency
+  useEffect(() => {
+    setLikes(post.likes_count || 0);
+    setDislikes(post.dislikes_count || 0);
+    setIsLiked(post.is_liked || false);
+    setIsDisliked(post.is_disliked || false);
+  }, [post.likes_count, post.dislikes_count, post.is_liked, post.is_disliked]);
+
   // Fetch current user info
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -92,17 +100,23 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
     const prevIsLiked = isLiked;
     const prevIsDisliked = isDisliked;
 
+    let newIsLiked = isLiked;
+    let newIsDisliked = isDisliked;
+
     // Optimistic update
     if (isLiked) {
       setLikes(p => p - 1);
       setIsLiked(false);
+      newIsLiked = false;
     } else {
       setLikes(p => p + 1);
       setIsLiked(true);
+      newIsLiked = true;
       // Remove dislike if exists
       if (isDisliked) {
         setDislikes(p => p - 1);
         setIsDisliked(false);
+        newIsDisliked = false;
       }
     }
 
@@ -121,9 +135,19 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
       setLikes(data.likes_count);
       setDislikes(data.dislikes_count);
       
+      // Update interaction states from server response
+      if (data.hasOwnProperty('is_liked')) {
+        setIsLiked(data.is_liked);
+        newIsLiked = data.is_liked;
+      }
+      if (data.hasOwnProperty('is_disliked')) {
+        setIsDisliked(data.is_disliked);
+        newIsDisliked = data.is_disliked;
+      }
+      
       // Notify parent for synchronization
       if (onInteractionUpdate) {
-        onInteractionUpdate(post.id, data.likes_count, data.dislikes_count);
+        onInteractionUpdate(post.id, data.likes_count, data.dislikes_count, newIsLiked, newIsDisliked);
       }
       
     } catch (err) {
@@ -132,6 +156,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
       setDislikes(prevDislikes);
       setIsLiked(prevIsLiked);
       setIsDisliked(prevIsDisliked);
+      alert("Failed to update. Please try again.");
     }
   };
 
@@ -148,17 +173,23 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
     const prevIsLiked = isLiked;
     const prevIsDisliked = isDisliked;
 
+    let newIsLiked = isLiked;
+    let newIsDisliked = isDisliked;
+
     // Optimistic update
     if (isDisliked) {
       setDislikes(p => p - 1);
       setIsDisliked(false);
+      newIsDisliked = false;
     } else {
       setDislikes(p => p + 1);
       setIsDisliked(true);
+      newIsDisliked = true;
       // Remove like if exists
       if (isLiked) {
         setLikes(p => p - 1);
         setIsLiked(false);
+        newIsLiked = false;
       }
     }
 
@@ -177,9 +208,19 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
       setLikes(data.likes_count);
       setDislikes(data.dislikes_count);
       
+      // Update interaction states from server response
+      if (data.hasOwnProperty('is_liked')) {
+        setIsLiked(data.is_liked);
+        newIsLiked = data.is_liked;
+      }
+      if (data.hasOwnProperty('is_disliked')) {
+        setIsDisliked(data.is_disliked);
+        newIsDisliked = data.is_disliked;
+      }
+      
       // Notify parent for synchronization
       if (onInteractionUpdate) {
-        onInteractionUpdate(post.id, data.likes_count, data.dislikes_count);
+        onInteractionUpdate(post.id, data.likes_count, data.dislikes_count, newIsLiked, newIsDisliked);
       }
       
     } catch (err) {
@@ -188,6 +229,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
       setDislikes(prevDislikes);
       setIsLiked(prevIsLiked);
       setIsDisliked(prevIsDisliked);
+      alert("Failed to update. Please try again.");
     }
   };
 
@@ -220,118 +262,77 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
         }, 100);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to post comment", err);
+      alert("Failed to post comment. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Helper function to get user display name
-  const getUserDisplayName = (user) => {
-    if (!user) return 'Community Member';
-    
-    // Priority: full_name > first_name + last_name > username > email
-    if (user.full_name && user.full_name.trim()) {
-      return user.full_name.trim();
-    }
-    
-    const firstName = user.first_name ? user.first_name.trim() : '';
-    const lastName = user.last_name ? user.last_name.trim() : '';
-    
-    if (firstName || lastName) {
-      return `${firstName} ${lastName}`.trim();
-    }
-    
-    return user.username || user.email || 'Community Member';
+  // Helper functions for user display
+  const getUserDisplayName = (post) => {
+    if (post.full_name) return post.full_name;
+    if (post.first_name && post.last_name) return `${post.first_name} ${post.last_name}`.trim();
+    if (post.username) return post.username;
+    return null;
   };
 
-  // Helper function to get user initials
-  const getUserInitials = (user) => {
-    if (!user) return 'C';
-    
-    const displayName = getUserDisplayName(user);
-    const nameParts = displayName.split(' ').filter(part => part.length > 0);
-    
-    if (nameParts.length >= 2) {
-      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
-    } else if (nameParts.length === 1) {
-      return nameParts[0][0].toUpperCase();
+  const getUserInitials = (post) => {
+    const displayName = getUserDisplayName(post);
+    if (!displayName) return 'U';
+    const parts = displayName.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    
-    return 'U';
+    return displayName.substring(0, 2).toUpperCase();
   };
 
-  const displayImages = [images.before, images.after].filter(Boolean);
-  const currentImage = displayImages[currentImageIndex];
-  const imageLabels = [];
-  if (images.before) imageLabels.push('Before');
-  if (images.after) imageLabels.push('After');
+  const imageArray = [images.before, images.after].filter(Boolean);
+  const hasImages = imageArray.length > 0;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/40 animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-white w-full max-w-7xl max-h-[96vh] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative"
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
-        
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 rounded-full transition-all shadow-lg"
+          className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-lg hover:shadow-xl hover:scale-110"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </button>
 
-        {/* Left Side: Image Viewer - 60% width */}
-        <div className="md:w-[60%] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative min-h-[400px] md:min-h-0">
-          {currentImage ? (
+        {/* Left Side: Image Gallery - 60% width */}
+        <div className="md:w-[60%] bg-black flex items-center justify-center relative">
+          {hasImages ? (
             <>
               <img 
-                src={currentImage} 
-                className="w-full h-full object-contain max-h-[96vh]" 
-                alt={imageLabels[currentImageIndex] || "Issue"} 
+                src={imageArray[currentImageIndex]} 
+                alt={currentImageIndex === 0 ? "Before" : "After"}
+                className="w-full h-full object-contain max-h-[90vh]"
               />
               
-              {/* Image Label Badge */}
-              <div className={`absolute top-4 left-4 px-4 py-2 rounded-full text-sm font-bold shadow-lg backdrop-blur-md ${
-                imageLabels[currentImageIndex] === 'Before' 
-                  ? 'bg-red-500/90 text-white' 
-                  : 'bg-emerald-500/90 text-white'
-              }`}>
-                {imageLabels[currentImageIndex]}
+              {/* Image Labels */}
+              <div className="absolute top-4 left-4 px-4 py-2 bg-white/90 backdrop-blur-md rounded-full font-bold text-sm shadow-lg">
+                {currentImageIndex === 0 && images.before ? "Before" : "After"}
               </div>
-
-              {/* Image Navigation Dots */}
-              {displayImages.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
-                  {displayImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImageIndex(idx)}
-                      className={`h-2 rounded-full transition-all ${
-                        idx === currentImageIndex 
-                          ? 'bg-white w-8 shadow-lg' 
-                          : 'bg-white/50 hover:bg-white/75 w-2'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* LARGER Arrow Navigation */}
-              {displayImages.length > 1 && (
+              
+              {/* Navigation Arrows (only if multiple images) */}
+              {imageArray.length > 1 && (
                 <>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length)}
+                    onClick={() => setCurrentImageIndex((currentImageIndex - 1 + imageArray.length) % imageArray.length)}
                     className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:shadow-2xl hover:scale-110"
                   >
                     <ChevronLeft className="w-8 h-8" />
                   </button>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % displayImages.length)}
+                    onClick={() => setCurrentImageIndex((currentImageIndex + 1) % imageArray.length)}
                     className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:shadow-2xl hover:scale-110"
                   >
                     <ChevronRight className="w-8 h-8" />
