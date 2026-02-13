@@ -19,6 +19,12 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
     serializer_class = IssueReportSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_context(self):
+        """Pass request to serializer for user context"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def perform_create(self, serializer):
         user = self.request.user
 
@@ -89,11 +95,13 @@ def presign_s3(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def presign_get_for_track(request, id):
-    from .models import IssueReport
-
+    """
+    Generate presigned URLs for viewing report images
+    """
     try:
         report = IssueReport.objects.get(pk=id)
     except IssueReport.DoesNotExist:
@@ -156,10 +164,10 @@ def presign_get_for_track(request, id):
 
     return Response({
         "url": before_url,
-
         "before": before_url,
         "after": after_url,
     })
+
 
 class PublicIssueReportDetailView(generics.RetrieveAPIView):
     """
@@ -172,12 +180,23 @@ class PublicIssueReportDetailView(generics.RetrieveAPIView):
     lookup_field = "tracking_id"
     lookup_url_kwarg = "tracking_id"
 
+    def get_serializer_context(self):
+        """Pass request to serializer for user context"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
 class CommunityCursorPagination(CursorPagination):
     page_size = 6
     ordering = "-updated_at"
 
 
 class CommunityResolvedIssuesView(ListAPIView):
+    """
+    List all resolved issues for community feed
+    Supports pagination and includes social features
+    """
     permission_classes = [AllowAny]
     serializer_class = IssueReportSerializer
     pagination_class = CommunityCursorPagination
@@ -187,7 +206,17 @@ class CommunityResolvedIssuesView(ListAPIView):
             status="resolved"
         ).order_by("-updated_at")
     
+    def get_serializer_context(self):
+        """Pass request to serializer for user context"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
 class UserIssueHistoryView(generics.ListAPIView):
+    """
+    View user's own issue report history
+    """
     serializer_class = IssueHistorySerializer
     permission_classes = [IsAuthenticated]
 
@@ -196,26 +225,11 @@ class UserIssueHistoryView(generics.ListAPIView):
             user=self.request.user
         ).order_by("-issue_date")
 
-class CommunityResolvedIssuesView(ListAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = IssueReportSerializer
-    pagination_class = CommunityCursorPagination
-
-    def get_queryset(self):
-        return IssueReport.objects.filter(
-            status="resolved"
-        ).order_by("-updated_at")
-
-class UserIssueHistoryView(generics.ListAPIView):
-    serializer_class = IssueHistorySerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return IssueReport.objects.filter(
-            user=self.request.user
-        ).order_by("-issue_date")
 
 class CommentListCreateView(generics.ListCreateAPIView):
+    """
+    List and create comments for a specific report
+    """
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -223,12 +237,23 @@ class CommentListCreateView(generics.ListCreateAPIView):
         report_id = self.kwargs.get('report_id')
         return Comment.objects.filter(report_id=report_id)
 
+    def get_serializer_context(self):
+        """Pass request to serializer for user context"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def perform_create(self, serializer):
         report_id = self.kwargs.get('report_id')
         report = get_object_or_404(IssueReport, id=report_id)
         serializer.save(user=self.request.user, report=report)
 
+
 class ToggleLikeView(views.APIView):
+    """
+    Toggle like on a report
+    Returns updated like/dislike counts
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, report_id):
@@ -240,7 +265,9 @@ class ToggleLikeView(views.APIView):
             liked = False
         else:
             report.likes.add(user)
-            report.dislikes.remove(user) # Remove dislike if exists
+            # Remove dislike if exists
+            if report.dislikes.filter(id=user.id).exists():
+                report.dislikes.remove(user)
             liked = True
             
         return Response({
@@ -249,7 +276,12 @@ class ToggleLikeView(views.APIView):
             "dislikes_count": report.dislikes.count()
         })
 
+
 class ToggleDislikeView(views.APIView):
+    """
+    Toggle dislike on a report
+    Returns updated like/dislike counts
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, report_id):
@@ -261,7 +293,9 @@ class ToggleDislikeView(views.APIView):
             disliked = False
         else:
             report.dislikes.add(user)
-            report.likes.remove(user) # Remove like if exists
+            # Remove like if exists
+            if report.likes.filter(id=user.id).exists():
+                report.likes.remove(user)
             disliked = True
             
         return Response({

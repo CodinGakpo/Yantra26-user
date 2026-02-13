@@ -58,6 +58,52 @@ function Community() {
     }
   };
 
+  // Handle synchronous updates from PostCard interactions
+  const handleLikeUpdate = (postId, newLikesCount) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId 
+          ? { ...post, likes_count: newLikesCount }
+          : post
+      )
+    );
+    
+    // Also update the selected post if it's open
+    if (selectedPost && selectedPost.id === postId) {
+      setSelectedPost(prev => ({ ...prev, likes_count: newLikesCount }));
+    }
+  };
+
+  const handleDislikeUpdate = (postId, newDislikesCount) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId 
+          ? { ...post, dislikes_count: newDislikesCount }
+          : post
+      )
+    );
+    
+    // Also update the selected post if it's open
+    if (selectedPost && selectedPost.id === postId) {
+      setSelectedPost(prev => ({ ...prev, dislikes_count: newDislikesCount }));
+    }
+  };
+
+  // Handle updates from modal
+  const handleModalInteractionUpdate = (postId, newLikesCount, newDislikesCount) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              likes_count: newLikesCount,
+              dislikes_count: newDislikesCount 
+            }
+          : post
+      )
+    );
+  };
+
   // Initial load
   useEffect(() => {
     fetchPosts(undefined, true);
@@ -170,14 +216,18 @@ function Community() {
                   )}
 
                   {/* Posts Grid */}
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {posts.map((post) => (
                       <div 
                         key={post.id} 
                         onClick={() => setSelectedPost(post)}
                         className="cursor-pointer transition-transform hover:scale-[1.01]"
                       >
-                        <PostCard post={post} />
+                        <PostCard 
+                          post={post}
+                          onLikeUpdate={handleLikeUpdate}
+                          onDislikeUpdate={handleDislikeUpdate}
+                        />
                       </div>
                     ))}
                   </div>
@@ -214,7 +264,8 @@ function Community() {
       {selectedPost && (
         <PostDetailsModal 
           post={selectedPost} 
-          onClose={() => setSelectedPost(null)} 
+          onClose={() => setSelectedPost(null)}
+          onInteractionUpdate={handleModalInteractionUpdate}
         />
       )}
     </div>
