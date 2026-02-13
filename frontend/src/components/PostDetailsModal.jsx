@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Heart, MapPin, Building2, Calendar, User, Loader2, MessageCircle } from 'lucide-react';
+import { X, Send, ThumbsUp, ThumbsDown, MapPin, Building2, Calendar, User, Loader2, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -14,6 +14,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [dislikes, setDislikes] = useState(post.dislikes_count || 0);
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
+  const [isDisliked, setIsDisliked] = useState(post.is_disliked || false);
 
   const [images, setImages] = useState({ before: null, after: null });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -87,7 +88,9 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
     }
 
     const prevLikes = likes;
+    const prevDislikes = dislikes;
     const prevIsLiked = isLiked;
+    const prevIsDisliked = isDisliked;
 
     // Optimistic update
     if (isLiked) {
@@ -96,6 +99,11 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
     } else {
       setLikes(p => p + 1);
       setIsLiked(true);
+      // Remove dislike if exists
+      if (isDisliked) {
+        setDislikes(p => p - 1);
+        setIsDisliked(false);
+      }
     }
 
     try {
@@ -111,6 +119,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
       
       const data = await res.json();
       setLikes(data.likes_count);
+      setDislikes(data.dislikes_count);
       
       // Notify parent for synchronization
       if (onInteractionUpdate) {
@@ -120,7 +129,65 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
     } catch (err) {
       console.error(err);
       setLikes(prevLikes);
+      setDislikes(prevDislikes);
       setIsLiked(prevIsLiked);
+      setIsDisliked(prevIsDisliked);
+    }
+  };
+
+  // Handle Dislike Interaction
+  const handleDislike = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      alert("Please login to interact with posts!");
+      return;
+    }
+
+    const prevLikes = likes;
+    const prevDislikes = dislikes;
+    const prevIsLiked = isLiked;
+    const prevIsDisliked = isDisliked;
+
+    // Optimistic update
+    if (isDisliked) {
+      setDislikes(p => p - 1);
+      setIsDisliked(false);
+    } else {
+      setDislikes(p => p + 1);
+      setIsDisliked(true);
+      // Remove like if exists
+      if (isLiked) {
+        setLikes(p => p - 1);
+        setIsLiked(false);
+      }
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/${post.id}/dislike/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) throw new Error("Dislike action failed");
+      
+      const data = await res.json();
+      setLikes(data.likes_count);
+      setDislikes(data.dislikes_count);
+      
+      // Notify parent for synchronization
+      if (onInteractionUpdate) {
+        onInteractionUpdate(post.id, data.likes_count, data.dislikes_count);
+      }
+      
+    } catch (err) {
+      console.error(err);
+      setLikes(prevLikes);
+      setDislikes(prevDislikes);
+      setIsLiked(prevIsLiked);
+      setIsDisliked(prevIsDisliked);
     }
   };
 
@@ -202,7 +269,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/40 animate-in fade-in duration-300"
       onClick={onClose}
     >
       <div 
@@ -213,13 +280,13 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2.5 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all backdrop-blur-md md:bg-white/90 md:hover:bg-white md:text-gray-700"
+          className="absolute top-4 right-4 z-20 p-2.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 rounded-full transition-all shadow-lg"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Left Side: Image Viewer - Larger now (60%) */}
-        <div className="md:w-[60%] bg-black flex items-center justify-center relative min-h-[400px] md:min-h-0">
+        {/* Left Side: Image Viewer - 60% width */}
+        <div className="md:w-[60%] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative min-h-[400px] md:min-h-0">
           {currentImage ? (
             <>
               <img 
@@ -239,35 +306,35 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
 
               {/* Image Navigation Dots */}
               {displayImages.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
                   {displayImages.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
-                      className={`w-2 h-2 rounded-full transition-all ${
+                      className={`h-2 rounded-full transition-all ${
                         idx === currentImageIndex 
-                          ? 'bg-white w-6' 
-                          : 'bg-white/50 hover:bg-white/75'
+                          ? 'bg-white w-8 shadow-lg' 
+                          : 'bg-white/50 hover:bg-white/75 w-2'
                       }`}
                     />
                   ))}
                 </div>
               )}
 
-              {/* Arrow Navigation */}
+              {/* LARGER Arrow Navigation */}
               {displayImages.length > 1 && (
                 <>
                   <button
                     onClick={() => setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"
+                    className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:shadow-2xl hover:scale-110"
                   >
-                    ‹
+                    <ChevronLeft className="w-8 h-8" />
                   </button>
                   <button
                     onClick={() => setCurrentImageIndex((prev) => (prev + 1) % displayImages.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"
+                    className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 hover:bg-white text-gray-800 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:shadow-2xl hover:scale-110"
                   >
-                    ›
+                    <ChevronRight className="w-8 h-8" />
                   </button>
                 </>
               )}
@@ -282,7 +349,7 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
           )}
         </div>
 
-        {/* Right Side: Details & Interactions - Smaller now (40%) */}
+        {/* Right Side: Details & Interactions - 40% width */}
         <div className="md:w-[40%] flex flex-col bg-white">
           {/* Header with User Info */}
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
@@ -295,8 +362,8 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
               <h3 className="font-bold text-gray-900 truncate">
                 {post.user_name || getUserDisplayName(post) || 'Community Member'}
               </h3>
-              <p className="text-sm text-gray-500 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
+              <p className="text-sm text-gray-500 flex items-center gap-1 truncate">
+                <MapPin className="w-3 h-3 flex-shrink-0" />
                 {post.location || 'Unknown location'}
               </p>
             </div>
@@ -395,26 +462,43 @@ function PostDetailsModal({ post, onClose, onInteractionUpdate }) {
 
           {/* Footer Actions */}
           <div className="p-5 bg-white border-t border-gray-100">
-            {/* Like Button */}
+            {/* Like & Dislike Buttons */}
             <div className="flex items-center gap-6 mb-4 pb-4 border-b border-gray-100">
+              {/* LIKE Button */}
               <button 
                 onClick={handleLike}
                 className="flex items-center gap-2 group transition-all"
               >
-                <Heart 
+                <ThumbsUp 
                   className={`w-7 h-7 transition-all duration-300 ${
                     isLiked 
-                      ? 'fill-red-500 text-red-500 scale-110' 
-                      : 'text-gray-400 group-hover:text-red-400 group-hover:scale-110'
+                      ? 'fill-emerald-600 text-emerald-600 scale-110' 
+                      : 'text-gray-400 group-hover:text-emerald-500 group-hover:scale-110'
                   }`}
                 />
                 <span className={`font-bold text-lg transition-colors ${
-                  isLiked ? 'text-red-500' : 'text-gray-700'
+                  isLiked ? 'text-emerald-600' : 'text-gray-700'
                 }`}>
                   {likes}
                 </span>
-                <span className="text-sm text-gray-500 ml-1">
-                  {likes === 1 ? 'like' : 'likes'}
+              </button>
+
+              {/* DISLIKE Button */}
+              <button 
+                onClick={handleDislike}
+                className="flex items-center gap-2 group transition-all"
+              >
+                <ThumbsDown 
+                  className={`w-7 h-7 transition-all duration-300 ${
+                    isDisliked 
+                      ? 'fill-red-600 text-red-600 scale-110' 
+                      : 'text-gray-400 group-hover:text-red-500 group-hover:scale-110'
+                  }`}
+                />
+                <span className={`font-bold text-lg transition-colors ${
+                  isDisliked ? 'text-red-600' : 'text-gray-700'
+                }`}>
+                  {dislikes}
                 </span>
               </button>
             </div>

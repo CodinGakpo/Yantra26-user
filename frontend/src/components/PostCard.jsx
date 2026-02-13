@@ -250,45 +250,48 @@ function PostCard({ post, onLikeUpdate, onDislikeUpdate }) {
         {/* Divider */}
         <div className="border-t border-gray-200 my-4"></div>
 
-        {/* Social Actions - Instagram Style */}
+        {/* Social Actions - Consistent Like/Dislike */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
+            {/* LIKE Button */}
             <button 
               onClick={(e) => handleInteraction(e, 'like')}
               className="flex items-center gap-2 group/like transition-all duration-300"
             >
               <div className={`transition-all duration-300 ${
                 isLiked 
-                  ? 'text-red-500 scale-110' 
-                  : 'text-gray-400 group-hover/like:text-red-400 group-hover/like:scale-110'
+                  ? 'text-emerald-600 scale-110' 
+                  : 'text-gray-400 group-hover/like:text-emerald-500 group-hover/like:scale-110'
               }`}>
                 <ThumbsUp className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
               </div>
               <span className={`font-semibold transition-colors ${
-                isLiked ? 'text-red-500' : 'text-gray-600'
+                isLiked ? 'text-emerald-600' : 'text-gray-600'
               }`}>
                 {likes}
               </span>
             </button>
 
+            {/* DISLIKE Button */}
             <button 
               onClick={(e) => handleInteraction(e, 'dislike')}
               className="flex items-center gap-2 group/dislike transition-all duration-300"
             >
               <div className={`transition-all duration-300 ${
                 isDisliked 
-                  ? 'text-gray-700 scale-110' 
-                  : 'text-gray-400 group-hover/dislike:text-gray-600 group-hover/dislike:scale-110'
+                  ? 'text-red-600 scale-110' 
+                  : 'text-gray-400 group-hover/dislike:text-red-500 group-hover/dislike:scale-110'
               }`}>
                 <ThumbsDown className={`w-6 h-6 ${isDisliked ? 'fill-current' : ''}`} />
               </div>
               <span className={`font-semibold transition-colors ${
-                isDisliked ? 'text-gray-700' : 'text-gray-600'
+                isDisliked ? 'text-red-600' : 'text-gray-600'
               }`}>
                 {dislikes}
               </span>
             </button>
 
+            {/* Comments */}
             <div className="flex items-center gap-2 text-gray-400">
               <MessageCircle className="w-6 h-6" />
               <span className="font-semibold text-gray-600">{post.comments_count || 0}</span>
