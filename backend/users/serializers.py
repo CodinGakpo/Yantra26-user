@@ -195,22 +195,35 @@ class GoogleAuthSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
     
     def validate_token(self, value):
-        """Validate Google OAuth token"""
+        """Validate Google OAuth token from web or iOS app"""
         from google.oauth2 import id_token
         from google.auth.transport import requests
         from django.conf import settings
         
-        try:
-            idinfo = id_token.verify_oauth2_token(
-                value,
-                requests.Request(),
-                settings.GOOGLE_CLIENT_ID
-            )
-            
-            return idinfo
-            
-        except ValueError as e:
-            raise serializers.ValidationError(f"Invalid token: {str(e)}")
+        # Try validating with web client ID first
+        client_ids = [settings.GOOGLE_CLIENT_ID]
+        
+        # Add iOS app client ID if configured
+        if settings.GOOGLE_CLIENT_ID_APP:
+            client_ids.append(settings.GOOGLE_CLIENT_ID_APP)
+        
+        last_error = None
+        for client_id in client_ids:
+            try:
+                idinfo = id_token.verify_oauth2_token(
+                    value,
+                    requests.Request(),
+                    client_id
+                )
+                # Token validated successfully with this client ID
+                return idinfo
+                
+            except ValueError as e:
+                last_error = e
+                continue
+        
+        # If we get here, token validation failed for all client IDs
+        raise serializers.ValidationError(f"Invalid token: {str(last_error)}")
     
     def create_or_get_user(self, validated_data):
         """Create or get user from Google data"""

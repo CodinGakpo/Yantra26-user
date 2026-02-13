@@ -86,7 +86,9 @@ if CELERY_RESULT_BACKEND.startswith('rediss://'):
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_ALWAYS_EAGER = False  # Set to True to run tasks synchronously in DEBUG mode
+# Note: CELERY_TASK_ALWAYS_EAGER can be overridden in local.py for development
+# Default to False for production, but local.py sets it to True
+CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # Celery Beat Schedule
