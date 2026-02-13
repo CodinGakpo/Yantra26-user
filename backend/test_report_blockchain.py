@@ -109,10 +109,9 @@ def create_test_report(user):
         'issue_description': 'Large pothole causing traffic issues. Approximately 2 feet wide and 6 inches deep.',
         'image_url': 'reports/test-image-key.jpg',
         'department': 'Public Works Department',
-        'confidence_score': 0.95,
-        'tracking_id': tracking_id
+        'confidence_score': 0.95
     }
-
+    
     try:
         report = IssueReport.objects.create(**report_data)
         print(f"✓ Report created successfully")

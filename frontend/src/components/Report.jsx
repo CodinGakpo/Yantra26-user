@@ -39,6 +39,7 @@ function Report() {
   const INDIA_CENTER = [20.5937, 78.9629];
   const [mapCenter, setMapCenter] = useState(INDIA_CENTER);
   const [mapZoom, setMapZoom] = useState(5);
+  const [hasZoomedToUser, setHasZoomedToUser] = useState(false);
 
   // Add state for ML classification status
   const [isClassifying, setIsClassifying] = useState(false);
@@ -83,6 +84,16 @@ function Report() {
   useEffect(() => {
     if (!showMap) return;
 
+    // If there's already a selected position, zoom to that instead
+    if (tempPosition) {
+      setMapCenter(tempPosition);
+      setMapZoom(18);
+      return;
+    }
+
+    // Only zoom to user location if we haven't done it before
+    if (hasZoomedToUser) return;
+
     if (!navigator.geolocation) {
       console.warn("Geolocation not supported");
       setMapCenter(INDIA_CENTER);
@@ -96,11 +107,13 @@ function Report() {
         setMapCenter([latitude, longitude]);
         setMapZoom(18);
         setTempPosition([latitude, longitude]);
+        setHasZoomedToUser(true); // Mark that we've zoomed to user location
       },
       (err) => {
         console.warn("Location permission denied", err);
         setMapCenter(INDIA_CENTER);
         setMapZoom(5);
+        setHasZoomedToUser(true); // Mark as done even on error
       },
       {
         enableHighAccuracy: true,
@@ -108,7 +121,7 @@ function Report() {
         maximumAge: 0,
       }
     );
-  }, [showMap]);
+  }, [showMap, hasZoomedToUser, tempPosition]);
 
   const handleFileChange = (e) => {
     const file = e.target.files && e.target.files[0];

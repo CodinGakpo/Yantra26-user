@@ -163,14 +163,16 @@ const History = () => {
                             <div className="flex items-center gap-1.5">
                               <Clock className="w-4 h-4 text-gray-400" />
                               <span>
-                                {new Date(issue.created_at).toLocaleDateString(
-                                  "en-IN",
-                                  {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )}
+                                {new Date(issue.issue_date).toLocaleDateString
+                                  (
+                                    "en-IN",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )
+                                }
                               </span>
                             </div>
                           </div>
