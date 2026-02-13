@@ -4,6 +4,7 @@ import Footer from "./Footer";
 import PostCard from "./PostCard";
 import { Loader2, Users, Sparkles } from "lucide-react";
 import CommunityEmptyIllustration from "../assets/empty-illustration.png";
+import PostDetailsModal from "./PostDetailsModal";
 
 function Community() {
   const [posts, setPosts] = useState([]);
@@ -11,6 +12,9 @@ function Community() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // State for the modal
+  const [selectedPost, setSelectedPost] = useState(null);
+  
   const observerRef = useRef(null);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -22,8 +26,11 @@ function Community() {
     if (loading) return;
     setLoading(true);
 
+    const token = localStorage.getItem('accessToken');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { headers });
 
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
@@ -112,13 +119,6 @@ function Community() {
                 /* Empty State */
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="max-w-md mx-auto">
-                    {/* 
-                      ILLUSTRATION NEEDED: Community Empty State illustration
-                      - Storyset.com > Business/Nature Illustrations > Simple Background
-                      - Colors: Green tones (#10B981, #059669)
-                      - Style: Group of people celebrating/working together
-                      - Save as: community-empty-illustration.png
-                    */}
                     <img
                       src={CommunityEmptyIllustration}
                       alt="No community updates yet"
@@ -172,7 +172,13 @@ function Community() {
                   {/* Posts Grid */}
                   <div className="space-y-8">
                     {posts.map((post) => (
-                      <PostCard key={post.id} post={post} />
+                      <div 
+                        key={post.id} 
+                        onClick={() => setSelectedPost(post)}
+                        className="cursor-pointer transition-transform hover:scale-[1.01]"
+                      >
+                        <PostCard post={post} />
+                      </div>
                     ))}
                   </div>
 
@@ -203,6 +209,14 @@ function Community() {
       </main>
 
       <Footer />
+
+      {/* Render Modal */}
+      {selectedPost && (
+        <PostDetailsModal 
+          post={selectedPost} 
+          onClose={() => setSelectedPost(null)} 
+        />
+      )}
     </div>
   );
 }
