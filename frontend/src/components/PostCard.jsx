@@ -24,7 +24,7 @@ function PostCard({ post, onLikeUpdate, onDislikeUpdate }) {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-  // Sync with parent component updates
+  // Sync with parent component updates - including interaction states
   useEffect(() => {
     setLikes(post.likes_count || 0);
     setDislikes(post.dislikes_count || 0);
@@ -66,28 +66,37 @@ function PostCard({ post, onLikeUpdate, onDislikeUpdate }) {
     const prevIsLiked = isLiked;
     const prevIsDisliked = isDisliked;
 
+    let newIsLiked = isLiked;
+    let newIsDisliked = isDisliked;
+
     if (type === 'like') {
       if (isLiked) {
         setLikes(p => p - 1);
         setIsLiked(false);
+        newIsLiked = false;
       } else {
         setLikes(p => p + 1);
         setIsLiked(true);
+        newIsLiked = true;
         if (isDisliked) {
           setDislikes(p => p - 1);
           setIsDisliked(false);
+          newIsDisliked = false;
         }
       }
     } else {
       if (isDisliked) {
         setDislikes(p => p - 1);
         setIsDisliked(false);
+        newIsDisliked = false;
       } else {
         setDislikes(p => p + 1);
         setIsDisliked(true);
+        newIsDisliked = true;
         if (isLiked) {
           setLikes(p => p - 1);
           setIsLiked(false);
+          newIsLiked = false;
         }
       }
     }
@@ -109,9 +118,20 @@ function PostCard({ post, onLikeUpdate, onDislikeUpdate }) {
       setLikes(data.likes_count);
       setDislikes(data.dislikes_count);
       
-      // Notify parent for synchronization across all cards
-      if (onLikeUpdate) onLikeUpdate(post.id, data.likes_count);
-      if (onDislikeUpdate) onDislikeUpdate(post.id, data.dislikes_count);
+      // Update interaction states from server response
+      // Assuming the backend returns is_liked and is_disliked
+      if (data.hasOwnProperty('is_liked')) {
+        setIsLiked(data.is_liked);
+        newIsLiked = data.is_liked;
+      }
+      if (data.hasOwnProperty('is_disliked')) {
+        setIsDisliked(data.is_disliked);
+        newIsDisliked = data.is_disliked;
+      }
+      
+      // Notify parent for synchronization across all cards and modal
+      if (onLikeUpdate) onLikeUpdate(post.id, data.likes_count, newIsLiked);
+      if (onDislikeUpdate) onDislikeUpdate(post.id, data.dislikes_count, newIsDisliked);
       
     } catch (err) {
       console.error(err);
@@ -120,6 +140,7 @@ function PostCard({ post, onLikeUpdate, onDislikeUpdate }) {
       setDislikes(prevDislikes);
       setIsLiked(prevIsLiked);
       setIsDisliked(prevIsDisliked);
+      alert("Failed to update. Please try again.");
     }
   };
 

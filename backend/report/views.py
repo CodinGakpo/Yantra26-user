@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from datetime import timedelta
 from .serializers import IssueHistorySerializer, CommentSerializer
 from user_profile.models import UserProfile
 from .models import IssueReport, Comment
@@ -28,12 +30,25 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = self.request.user
 
+        if user.is_temporarily_deactivated:
+            raise PermissionDenied(
+                "Account is temporarily deactivated. Please wait until reactivation."
+            )
+
         profile, _ = UserProfile.objects.get_or_create(user=user)
 
         if not profile.is_aadhaar_verified or not profile.aadhaar:
             raise PermissionDenied(
                 "Aadhaar verification is required before creating a report."
             )
+
+        start_of_window = timezone.now() - timedelta(hours=24)
+        submission_count = IssueReport.objects.filter(
+            user=user,
+            issue_date__gte=start_of_window,
+        ).count()
+        if submission_count >= 4:
+            raise ValidationError("Daily report limit reached (4 per 24 hours).")
 
         serializer.save(user=user)
 
@@ -224,6 +239,35 @@ class UserIssueHistoryView(generics.ListAPIView):
         return IssueReport.objects.filter(
             user=self.request.user
         ).order_by("-issue_date")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def submit_appeal(request, report_id):
+    report = get_object_or_404(IssueReport, id=report_id, user=request.user)
+
+    if report.status != "rejected":
+        return Response(
+            {"detail": "Appeal is allowed only for rejected reports."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if report.appeal_status != "not_appealed":
+        return Response(
+            {"detail": "Appeal has already been submitted for this report."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    report.appeal_status = "pending"
+    report.save(update_fields=["appeal_status"])
+
+    return Response(
+        {
+            "message": "Appeal submitted successfully.",
+            "appeal_status": report.appeal_status,
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 class CommentListCreateView(generics.ListCreateAPIView):
