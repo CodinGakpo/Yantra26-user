@@ -89,7 +89,7 @@ const Signin = () => {
                 <Leaf className="w-9 h-9 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-gray-900">NagrikMitra</h1>
+                <h1 className="text-3xl font-black text-gray-900">JanSaathi</h1>
                 <p className="text-xs font-semibold text-emerald-600 tracking-wide">CIVIC | CONNECT | RESOLVE</p>
               </div>
             </div>
@@ -106,7 +106,7 @@ const Signin = () => {
             */}
             <img 
               src={SignupImage}
-              alt="Join NagrikMitra" 
+              alt="Join JanSaathi" 
               className="w-full h-auto max-h-96 object-contain drop-shadow-2xl"
             />
           </div>
@@ -155,7 +155,7 @@ const Signin = () => {
                   <Leaf className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-left">
-                  <h1 className="text-2xl font-black text-gray-900">NagrikMitra</h1>
+                  <h1 className="text-2xl font-black text-gray-900">JanSaathi</h1>
                   <p className="text-[10px] font-semibold text-emerald-600 tracking-wide">CIVIC | CONNECT | RESOLVE</p>
                 </div>
               </div>
@@ -164,7 +164,7 @@ const Signin = () => {
             {/* Signup Header */}
             <div className="mb-8">
               <h2 className="text-3xl font-black text-gray-900 mb-2">Create Account</h2>
-              <p className="text-gray-600">Join NagrikMitra and start making a difference</p>
+              <p className="text-gray-600">Join JanSaathi and start making a difference</p>
             </div>
 
             {/* Google Signup */}
@@ -301,7 +301,7 @@ const Signin = () => {
                   Secure government portal
                 </p>
                 <p className="text-xs text-gray-400">
-                  © 2026 NagrikMitra • Government of India
+                  © 2026 JanSaathi • Government of India
                 </p>
               </div>
             </div>

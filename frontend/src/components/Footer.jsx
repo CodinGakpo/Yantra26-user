@@ -17,7 +17,7 @@ const Footer = () => {
                 <Leaf className="w-7 h-7 text-white" />
               </div>
               <div className="flex flex-col">
-                <h2 className="text-2xl font-black text-gray-900">NagrikMitra</h2>
+                <h2 className="text-2xl font-black text-gray-900">JanSaathi</h2>
                 <span className="text-[10px] font-semibold text-emerald-600 tracking-wide">CIVIC | CONNECT | RESOLVE</span>
               </div>
             </div>
@@ -78,8 +78,8 @@ const Footer = () => {
               </p>
               <p className="flex items-center justify-center md:justify-start gap-2">
                 <Mail className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <a href="mailto:support@nagrikmitra.in" className="hover:text-emerald-600 transition-colors duration-200 font-medium">
-                  support@nagrikmitra.in
+                <a href="mailto:support@JanSaathi.in" className="hover:text-emerald-600 transition-colors duration-200 font-medium">
+                  support@JanSaathi.in
                 </a>
               </p>
               <div className="flex items-center justify-center md:justify-start gap-2 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100 mt-4">
@@ -122,7 +122,7 @@ const Footer = () => {
         <div className="border-t border-emerald-100 mt-12 pt-6">
           <div className="text-center space-y-3">
             <p className="text-gray-600 text-sm font-medium">
-              © {new Date().getFullYear()} NagrikMitra · Government of India · Ministry of Urban Development
+              © {new Date().getFullYear()} JanSaathi · Government of India · Ministry of Urban Development
             </p>
             <p className="text-gray-500 text-xs">
               All rights reserved · All activities are monitored for security
