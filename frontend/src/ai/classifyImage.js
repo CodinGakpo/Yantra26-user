@@ -1,5 +1,3 @@
-// frontend/src/ai/classifyImage.js
-// Updated to use HYBRID classification (Image + Text)
 
 import { getApiUrl } from "../utils/api";
 

@@ -147,7 +147,7 @@ const Login = () => {
                 <Leaf className="w-9 h-9 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-gray-900">NagrikMitra</h1>
+                <h1 className="text-3xl font-black text-gray-900">JanSaathi</h1>
                 <p className="text-xs font-semibold text-emerald-600 tracking-wide">CIVIC | CONNECT | RESOLVE</p>
               </div>
             </div>
@@ -213,7 +213,7 @@ const Login = () => {
                   <Leaf className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-left">
-                  <h1 className="text-2xl font-black text-gray-900">NagrikMitra</h1>
+                  <h1 className="text-2xl font-black text-gray-900">JanSaathi</h1>
                   <p className="text-[10px] font-semibold text-emerald-600 tracking-wide">CIVIC | CONNECT | RESOLVE</p>
                 </div>
               </div>
@@ -222,7 +222,7 @@ const Login = () => {
             {/* Login Header */}
             <div className="mb-8">
               <h2 className="text-3xl font-black text-gray-900 mb-2">Welcome Back</h2>
-              <p className="text-gray-600">Sign in to continue to NagrikMitra</p>
+              <p className="text-gray-600">Sign in to continue to JanSaathi</p>
             </div>
 
             {/* Google Login */}
@@ -454,7 +454,7 @@ const Login = () => {
                 Secure government portal
               </p>
               <p className="text-xs text-gray-400">
-                © 2026 NagrikMitra • Government of India
+                © 2026 JanSaathi • Government of India
               </p>
             </div>
           </div>
