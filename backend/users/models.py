@@ -1,5 +1,4 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -54,6 +53,8 @@ class CustomUser(AbstractUser):
         default=100,
         validators=[MinValueValidator(0), MaxValueValidator(110)],
     )
+    incentive_reward_granted = models.BooleanField(default=False)
+    incentive_reward_amount = models.PositiveIntegerField(default=0)
     deactivated_until = models.DateTimeField(null=True, blank=True)
     
     AUTH_METHOD_CHOICES = [
@@ -63,7 +64,16 @@ class CustomUser(AbstractUser):
     auth_method = models.CharField(
         max_length=10, 
         choices=AUTH_METHOD_CHOICES, 
-        default='email'
+        default='email',
+        help_text='Primary authentication method used for account creation'
+    )
+    
+    # Trust score system
+    trust_score = models.IntegerField(default=100, help_text='User trust score (0-110)')
+    deactivated_until = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text='User is temporarily deactivated until this time'
     )
     
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
@@ -71,6 +81,30 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = []
     
     objects = CustomUserManager()
+    
+    def has_usable_password(self):
+        """Check if user has set a usable password"""
+        from django.contrib.auth.hashers import is_password_usable
+        return is_password_usable(self.password)
+    
+    @property
+    def is_temporarily_deactivated(self):
+        """Check if user is currently deactivated"""
+        if not self.deactivated_until:
+            return False
+        return timezone.now() < self.deactivated_until
+    
+    def get_available_auth_methods(self):
+        """Get list of available authentication methods for this user"""
+        methods = ['otp']  # OTP is always available
+        
+        if self.has_usable_password():
+            methods.append('password')
+        
+        if self.google_id:
+            methods.append('google')
+        
+        return methods
 
     groups = models.ManyToManyField(
         'auth.Group',
@@ -91,66 +125,6 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
-
-    @property
-    def is_temporarily_deactivated(self):
-        return bool(self.deactivated_until and self.deactivated_until > timezone.now())
-
-
-class TrustScoreLog(models.Model):
-    REASON_FAKE_REPORT = "FAKE_REPORT"
-    REASON_APPEAL_ACCEPTED = "APPEAL_ACCEPTED"
-    REASON_POST_BAN_RESTORE = "POST_BAN_RESTORE"
-    REASON_ISSUE_RESOLVED = "ISSUE_RESOLVED"
-    REASON_MANUAL_ADMIN_ADJUSTMENT = "MANUAL_ADMIN_ADJUSTMENT"
-
-    REASON_CHOICES = [
-        (REASON_FAKE_REPORT, "Fake Report"),
-        (REASON_APPEAL_ACCEPTED, "Appeal Accepted"),
-        (REASON_POST_BAN_RESTORE, "Post-Ban Restore"),
-        (REASON_ISSUE_RESOLVED, "Issue Resolved"),
-        (REASON_MANUAL_ADMIN_ADJUSTMENT, "Manual Admin Adjustment"),
-    ]
-
-    APPEAL_NOT_APPEALED = "NOT_APPEALED"
-    APPEAL_PENDING = "PENDING"
-    APPEAL_ACCEPTED = "ACCEPTED"
-    APPEAL_REJECTED = "REJECTED"
-
-    APPEAL_STATUS_CHOICES = [
-        (APPEAL_NOT_APPEALED, "Not Appealed"),
-        (APPEAL_PENDING, "Pending"),
-        (APPEAL_ACCEPTED, "Accepted"),
-        (APPEAL_REJECTED, "Rejected"),
-    ]
-
-    user = models.ForeignKey(
-        "users.CustomUser",
-        on_delete=models.CASCADE,
-        related_name="trust_score_logs",
-    )
-    delta = models.IntegerField()
-    reason = models.CharField(max_length=30, choices=REASON_CHOICES)
-    report = models.ForeignKey(
-        "report.IssueReport",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="trust_logs",
-    )
-    appeal_status = models.CharField(
-        max_length=15,
-        choices=APPEAL_STATUS_CHOICES,
-        default=APPEAL_NOT_APPEALED,
-    )
-    admin_id = models.IntegerField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.user.email} {self.delta:+d} ({self.reason})"
 
 
 class EmailOTP(models.Model):
@@ -184,3 +158,53 @@ class EmailOTP(models.Model):
             expires_at=expires_at
         )
         return otp_obj
+
+
+class TrustScoreLog(models.Model):
+    """Immutable audit log for trust score changes"""
+    
+    APPEAL_NOT_APPEALED = 'not_appealed'
+    APPEAL_PENDING = 'pending'
+    APPEAL_APPROVED = 'approved'
+    APPEAL_REJECTED = 'rejected'
+    
+    APPEAL_STATUS_CHOICES = [
+        (APPEAL_NOT_APPEALED, 'Not Appealed'),
+        (APPEAL_PENDING, 'Appeal Pending'),
+        (APPEAL_APPROVED, 'Appeal Approved'),
+        (APPEAL_REJECTED, 'Appeal Rejected'),
+    ]
+    
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='trust_score_logs'
+    )
+    delta = models.IntegerField(help_text='Change in trust score (can be negative)')
+    reason = models.TextField(help_text='Reason for trust score change')
+    report = models.ForeignKey(
+        'report.IssueReport',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text='Associated report if applicable'
+    )
+    appeal_status = models.CharField(
+        max_length=20,
+        choices=APPEAL_STATUS_CHOICES,
+        default=APPEAL_NOT_APPEALED
+    )
+    admin_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Admin user ID who made the change'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Trust Score Log'
+        verbose_name_plural = 'Trust Score Logs'
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.delta:+d} ({self.reason[:50]})"

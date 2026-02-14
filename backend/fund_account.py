@@ -19,10 +19,10 @@ def fund_account():
     w3 = Web3(Web3.HTTPProvider(ganache_url))
     
     if not w3.is_connected():
-        print("❌ Cannot connect to Ganache")
+        print(" Cannot connect to Ganache")
         return False
     
-    print(f"✅ Connected to Ganache (Chain ID: {w3.eth.chain_id})")
+    print(f"Connected to Ganache (Chain ID: {w3.eth.chain_id})")
     print()
     
     # Sender: Ganache Account #0 (has 100 ETH)
@@ -59,7 +59,7 @@ def fund_account():
             'gasPrice': w3.eth.gas_price
         })
         
-        print(f"✅ Transaction sent: {tx_hash.hex()}")
+        print(f"Transaction sent: {tx_hash.hex()}")
         print()
         
         # Wait for confirmation
@@ -67,7 +67,7 @@ def fund_account():
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         
         if tx_receipt['status'] == 1:
-            print(f"✅ Transaction confirmed in block {tx_receipt['blockNumber']}")
+            print(f"Transaction confirmed in block {tx_receipt['blockNumber']}")
             print()
             
             # Check new balance
@@ -83,7 +83,7 @@ def fund_account():
             print()
             
             print("=" * 70)
-            print("✅ SUCCESS! YOUR ACCOUNT IS NOW FUNDED")
+            print("SUCCESS! YOUR ACCOUNT IS NOW FUNDED")
             print("=" * 70)
             print()
             print("Next steps:")
@@ -98,11 +98,11 @@ def fund_account():
             
             return True
         else:
-            print("❌ Transaction failed")
+            print("Transaction failed")
             return False
             
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         print()
         print("This might happen if:")
         print("1. Ganache requires unlocking accounts (try Ganache UI)")

@@ -66,8 +66,7 @@ class IssueReportSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id", "issue_date", "updated_at", "status", "user", 
             "tracking_id", "likes", "dislikes", "user_name", "username",
-            "likes_count", "dislikes_count", "comments_count",
-            "appeal_status", "trust_score_delta"
+            "likes_count", "dislikes_count", "comments_count"
         )
 
     def get_user_name(self, obj):
@@ -155,11 +154,6 @@ class IssueHistorySerializer(serializers.ModelSerializer):
     Serializer for user's issue report history
     Shows a simplified view of their reports
     """
-    can_appeal = serializers.SerializerMethodField()
-
-    def get_can_appeal(self, obj):
-        return obj.status == "rejected" and obj.appeal_status == "not_appealed"
-
     class Meta:
         model = IssueReport
         fields = (
@@ -168,9 +162,6 @@ class IssueHistorySerializer(serializers.ModelSerializer):
             "issue_title",
             "location",
             "status",
-            "appeal_status",
-            "trust_score_delta",
-            "can_appeal",
             "issue_date",
             "updated_at",
         )
