@@ -36,6 +36,10 @@ function Report() {
   const [tempPosition, setTempPosition] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
   const [showInvalidPopup, setShowInvalidPopup] = useState(false);
+  const [showRateLimitPopup, setShowRateLimitPopup] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState(
+    "You cannot post any report until 12:00 AM IST."
+  );
   const INDIA_CENTER = [20.5937, 78.9629];
   const [mapCenter, setMapCenter] = useState(INDIA_CENTER);
   const [mapZoom, setMapZoom] = useState(5);
@@ -335,12 +339,29 @@ function Report() {
 
       if (!response.ok) {
         let errDetail = "Failed to submit report";
+        let errCode = "";
         try {
           const errJson = await response.json();
+          errCode = errJson.code || "";
+          if (errCode === "DAILY_REPORT_LIMIT") {
+            const retryLabel = errJson.retry_at_label || "12:00 AM IST";
+            setRateLimitMessage(
+              `You have reached the daily report limit. You cannot post any report until ${retryLabel}.`
+            );
+            setShowRateLimitPopup(true);
+            return;
+          }
           errDetail = errJson.detail || JSON.stringify(errJson);
         } catch {
           const errText = await response.text().catch(() => null);
           if (errText) errDetail = errText;
+        }
+        if (errDetail.includes("Daily report limit")) {
+          setRateLimitMessage(
+            "You have reached the daily report limit. You cannot post any report until 12:00 AM IST."
+          );
+          setShowRateLimitPopup(true);
+          return;
         }
         throw new Error(errDetail);
       }
@@ -547,6 +568,34 @@ function Report() {
             <button
               onClick={() => setShowInvalidPopup(false)}
               className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-all"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Limit Popup */}
+      {showRateLimitPopup && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-10 h-10 text-orange-600" />
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Daily Report Limit Reached
+            </h2>
+
+            <p className="text-gray-600 mb-6">
+              {rateLimitMessage}
+            </p>
+
+            <button
+              onClick={() => setShowRateLimitPopup(false)}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-semibold transition-all"
             >
               Okay
             </button>

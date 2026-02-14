@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from .serializers import IssueHistorySerializer, CommentSerializer
 from user_profile.models import UserProfile
 from .models import IssueReport, Comment
@@ -42,13 +43,29 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
                 "Aadhaar verification is required before creating a report."
             )
 
-        start_of_window = timezone.now() - timedelta(hours=24)
+        ist = ZoneInfo("Asia/Kolkata")
+        now_ist = timezone.now().astimezone(ist)
+        start_of_day_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+        next_midnight_ist = start_of_day_ist + timedelta(days=1)
+
+        start_of_day_utc = start_of_day_ist.astimezone(ZoneInfo("UTC"))
+        next_midnight_utc = next_midnight_ist.astimezone(ZoneInfo("UTC"))
+
         submission_count = IssueReport.objects.filter(
             user=user,
-            issue_date__gte=start_of_window,
+            issue_date__gte=start_of_day_utc,
+            issue_date__lt=next_midnight_utc,
         ).count()
+
         if submission_count >= 4:
-            raise ValidationError("Daily report limit reached (4 per 24 hours).")
+            raise ValidationError(
+                {
+                    "code": "DAILY_REPORT_LIMIT",
+                    "detail": "You cannot post more than 4 reports in a day.",
+                    "retry_at_label": "12:00 AM IST",
+                    "retry_at_ist": next_midnight_ist.isoformat(),
+                }
+            )
 
         serializer.save(user=user)
 
