@@ -14,6 +14,7 @@ import {
   Calendar,
   Shield,
   ArrowRight,
+  IndianRupee,
 } from "lucide-react";
 import ProfileIllustration from "../assets/profile-illustration.png";
 
@@ -36,6 +37,15 @@ function Profile() {
     trustScore: 100,
     deactivatedUntil: null,
     isTemporarilyDeactivated: false,
+    incentiveRewardAmount: 0,
+    incentiveRewardGranted: false,
+    incentiveRewardValue: 50,
+    incentiveTargetResolvedReports: 6,
+    incentiveLatestReportsChecked: 0,
+    incentiveLatestResolvedCount: 0,
+    incentiveHasRequiredTrustScore: false,
+    incentiveAllLatestReportsResolved: false,
+    incentiveRewardJustGranted: false,
   });
 
   // TEST-ONLY Aadhaar numbers
@@ -144,6 +154,21 @@ function Profile() {
         const isTemporarilyDeactivated =
           profile.is_temporarily_deactivated || false;
         const deactivatedUntil = profile.deactivated_until || null;
+        const incentiveRewardAmount = profile.incentive_reward_amount ?? 0;
+        const incentiveRewardGranted = profile.incentive_reward_granted || false;
+        const incentiveRewardValue = profile.incentive_reward_value ?? 50;
+        const incentiveTargetResolvedReports =
+          profile.incentive_target_resolved_reports ?? 6;
+        const incentiveLatestReportsChecked =
+          profile.incentive_latest_reports_checked ?? 0;
+        const incentiveLatestResolvedCount =
+          profile.incentive_latest_resolved_count ?? 0;
+        const incentiveHasRequiredTrustScore =
+          profile.incentive_has_required_trust_score || false;
+        const incentiveAllLatestReportsResolved =
+          profile.incentive_all_latest_reports_resolved || false;
+        const incentiveRewardJustGranted =
+          profile.incentive_reward_just_granted || false;
 
         setProfileData({
           firstName: firstName || "Not provided",
@@ -158,6 +183,15 @@ function Profile() {
           trustScore,
           isTemporarilyDeactivated,
           deactivatedUntil,
+          incentiveRewardAmount,
+          incentiveRewardGranted,
+          incentiveRewardValue,
+          incentiveTargetResolvedReports,
+          incentiveLatestReportsChecked,
+          incentiveLatestResolvedCount,
+          incentiveHasRequiredTrustScore,
+          incentiveAllLatestReportsResolved,
+          incentiveRewardJustGranted,
         });
 
         if (isVerified && aadhaar?.aadhaar_number) {
@@ -257,6 +291,15 @@ function Profile() {
     );
   }
 
+  const incentiveProgress = Math.min(
+    profileData.incentiveLatestResolvedCount,
+    profileData.incentiveTargetResolvedReports
+  );
+  const incentiveProgressPercent =
+    profileData.incentiveTargetResolvedReports > 0
+      ? (incentiveProgress / profileData.incentiveTargetResolvedReports) * 100
+      : 0;
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
@@ -317,6 +360,64 @@ function Profile() {
                 ) : (
                   <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm font-semibold">
                     Account Active
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-xl p-5 mb-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                      Civic Incentive Reward
+                    </p>
+                    <h3 className="text-xl font-black text-amber-900 mt-1">
+                      Earn Rs. {profileData.incentiveRewardValue} one-time
+                    </h3>
+                    <p className="text-sm text-amber-800 mt-2">
+                      Keep trust score at 110 and make your latest{" "}
+                      {profileData.incentiveTargetResolvedReports} reports resolved.
+                    </p>
+                  </div>
+                  <div className="bg-white border border-amber-200 rounded-lg px-4 py-3">
+                    <p className="text-xs text-gray-500 font-semibold uppercase">
+                      Reward Wallet
+                    </p>
+                    <p className="text-2xl font-black text-gray-900 flex items-center gap-1">
+                      <IndianRupee className="w-5 h-5 text-amber-600" />
+                      {profileData.incentiveRewardAmount}
+                    </p>
+                  </div>
+                </div>
+
+                {!profileData.incentiveRewardGranted && (
+                  <>
+                    <div className="mt-4">
+                      <div className="h-2 bg-amber-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-500"
+                          style={{ width: `${incentiveProgressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm text-amber-900 mt-3 font-semibold">
+                      Resolved progress: {incentiveProgress} /{" "}
+                      {profileData.incentiveTargetResolvedReports} (latest reports)
+                    </p>
+                    <p className="text-sm text-amber-900">
+                      Trust score condition:{" "}
+                      {profileData.incentiveHasRequiredTrustScore
+                        ? "Passed"
+                        : "Needs 110"}
+                    </p>
+                  </>
+                )}
+
+                {profileData.incentiveRewardGranted && (
+                  <div className="mt-4 bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 font-semibold">
+                    Reward unlocked. You received Rs. {profileData.incentiveRewardValue}
+                    {profileData.incentiveRewardJustGranted
+                      ? " for meeting this milestone."
+                      : " from this milestone."}
                   </div>
                 )}
               </div>
