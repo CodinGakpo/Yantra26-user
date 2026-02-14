@@ -9,31 +9,28 @@ from typing import Optional
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
-PROMPT = """You are a civic complaint analyzer. Your job is to extract the core civic issue from user complaints.
+PROMPT = """You are given a civic complaint.
 
-RULES:
-1. If the text is complete gibberish (random characters, no meaning), respond ONLY with: INVALID
-2. If it describes a real civic/public infrastructure problem, extract the core issue as ONE short sentence
-3. Remove addresses, directions, urgency words, emotions, and contact details
-4. Do NOT mention department names in your response
+If the text is meaningless, gibberish, unrelated to civic issues,
+or does not describe a real-world public problem, respond ONLY with:
+INVALID
 
-Examples:
+Otherwise, rewrite the complaint as ONE short sentence describing
+ONLY the core civic issue.
 
-Complaint: "asdf qwer zxcv !!! 123"
-Response: INVALID
+Ignore:
+- addresses
+- directions
+- urgency words
+- emotions
+- contact details
 
-Complaint: "Spillage... Water is leaking, diseases spread......"
-Response: Water leakage causing spillage
+Give more importance to that main issue and ignore consequences.
+Do NOT mention departments.
+Do NOT add new information.
 
-Complaint: "Garbage on the road... Its dirty and not clean to sleep in"
-Response: Garbage on the road
-
-Complaint: "big potholes clear urgent near bus stop opposite temple"
-Response: Large potholes need repair
-
-Now analyze this complaint:
-
-Complaint: {complaint}
+Complaint:
+{complaint}
 Response:"""
 
 
