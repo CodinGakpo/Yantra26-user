@@ -9,6 +9,9 @@ from rest_framework import serializers
 def _trust_score_log_model():
     return apps.get_model("users", "TrustScoreLog")
 
+def _issue_report_model():
+    return apps.get_model("report", "IssueReport")
+
 
 def calculate_deactivation_days(days_since_last_violation, b_min=1, b_max=30, d=30):
     """
@@ -92,3 +95,56 @@ def deactivate_user_until(user, *, days):
     user.deactivated_until = until
     user.save(update_fields=["deactivated_until"])
     return until
+
+
+@transaction.atomic
+def evaluate_resolution_incentive(user):
+    """
+    One-time reward:
+    trust_score == 110 and latest 6 reports are all resolved.
+    """
+    issue_report = _issue_report_model()
+    locked_user = user.__class__.objects.select_for_update().get(pk=user.pk)
+
+    latest_statuses = list(
+        issue_report.objects.filter(user=locked_user)
+        .order_by("-issue_date")
+        .values_list("status", flat=True)[:6]
+    )
+    has_six_reports = len(latest_statuses) == 6
+    all_latest_six_resolved = has_six_reports and all(
+        status == "resolved" for status in latest_statuses
+    )
+    is_eligible_now = (
+        locked_user.trust_score == 110
+        and all_latest_six_resolved
+        and not locked_user.incentive_reward_granted
+    )
+
+    reward_just_granted = False
+    if is_eligible_now:
+        locked_user.incentive_reward_granted = True
+        locked_user.incentive_reward_amount += 50
+        locked_user.save(
+            update_fields=[
+                "incentive_reward_granted",
+                "incentive_reward_amount",
+            ]
+        )
+        reward_just_granted = True
+
+    return {
+        "incentive_reward_granted": locked_user.incentive_reward_granted,
+        "incentive_reward_amount": locked_user.incentive_reward_amount,
+        "incentive_reward_value": 50,
+        "incentive_target_resolved_reports": 6,
+        "incentive_latest_reports_checked": len(latest_statuses),
+        "incentive_latest_resolved_count": sum(
+            1 for status in latest_statuses if status == "resolved"
+        ),
+        "incentive_all_latest_reports_resolved": all_latest_six_resolved,
+        "incentive_trust_score_required": 110,
+        "incentive_has_required_trust_score": locked_user.trust_score == 110,
+        "incentive_is_eligible_now": is_eligible_now,
+        "incentive_reward_just_granted": reward_just_granted,
+    }
