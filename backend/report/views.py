@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from datetime import timedelta
+from zoneinfo import ZoneInfo
 from .serializers import IssueHistorySerializer, CommentSerializer
 from user_profile.models import UserProfile
 from .models import IssueReport, Comment
@@ -13,6 +16,40 @@ from .serializers import IssueReportSerializer
 from django.conf import settings
 import boto3
 import uuid
+
+
+def get_daily_report_limit_status(user):
+    ist = ZoneInfo("Asia/Kolkata")
+    now_ist = timezone.now().astimezone(ist)
+    start_of_day_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_midnight_ist = start_of_day_ist + timedelta(days=1)
+
+    start_of_day_utc = start_of_day_ist.astimezone(ZoneInfo("UTC"))
+    next_midnight_utc = next_midnight_ist.astimezone(ZoneInfo("UTC"))
+
+    submission_count = IssueReport.objects.filter(
+        user=user,
+        issue_date__gte=start_of_day_utc,
+        issue_date__lt=next_midnight_utc,
+    ).count()
+
+    daily_limit = 4
+    return {
+        "count": submission_count,
+        "limit": daily_limit,
+        "can_submit": submission_count < daily_limit,
+        "retry_at_label": "12:00 AM IST",
+        "retry_at_ist": next_midnight_ist.isoformat(),
+    }
+
+
+class ReportEligibilityView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        status_payload = get_daily_report_limit_status(request.user)
+        return Response(status_payload)
+
 
 class IssueReportListCreateView(generics.ListCreateAPIView):
     queryset = IssueReport.objects.all().order_by("-updated_at")
@@ -33,6 +70,17 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
         if not profile.is_aadhaar_verified or not profile.aadhaar:
             raise PermissionDenied(
                 "Aadhaar verification is required before creating a report."
+            )
+
+        limit_status = get_daily_report_limit_status(user)
+        if not limit_status["can_submit"]:
+            raise ValidationError(
+                {
+                    "code": "DAILY_REPORT_LIMIT",
+                    "detail": "You cannot post more than 4 reports in a day.",
+                    "retry_at_label": limit_status["retry_at_label"],
+                    "retry_at_ist": limit_status["retry_at_ist"],
+                }
             )
 
         serializer.save(user=user)

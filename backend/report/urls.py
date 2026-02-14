@@ -2,11 +2,13 @@ from django.urls import path
 from .views import (
     IssueReportListCreateView, presign_s3, presign_get_for_track,
     CommunityResolvedIssuesView, UserIssueHistoryView,
-    CommentListCreateView, ToggleLikeView, ToggleDislikeView
+    CommentListCreateView, ToggleLikeView, ToggleDislikeView, submit_appeal,
+    ReportEligibilityView,
 )
 
 urlpatterns = [
     path("", IssueReportListCreateView.as_view(), name="report-management"),
+    path("eligibility/", ReportEligibilityView.as_view(), name="report-eligibility"),
     path("s3/presign/", presign_s3, name="presign-s3"),
     path("<int:id>/presign-get/", presign_get_for_track, name="presign-get"),
     path("community/resolved/", CommunityResolvedIssuesView.as_view()),
