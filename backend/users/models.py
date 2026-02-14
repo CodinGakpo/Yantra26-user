@@ -54,6 +54,8 @@ class CustomUser(AbstractUser):
         default=100,
         validators=[MinValueValidator(0), MaxValueValidator(110)],
     )
+    incentive_reward_granted = models.BooleanField(default=False)
+    incentive_reward_amount = models.PositiveIntegerField(default=0)
     deactivated_until = models.DateTimeField(null=True, blank=True)
     
     AUTH_METHOD_CHOICES = [
