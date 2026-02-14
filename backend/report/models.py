@@ -5,15 +5,8 @@ class IssueReport(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("in_progress", "In Progress"),
-        ("rejected", "Rejected"),
         ("resolved", "Resolved"),
         ("closed", "Closed"),
-    ]
-    APPEAL_STATUS_CHOICES = [
-        ("not_appealed", "Not Appealed"),
-        ("pending", "Pending"),
-        ("accepted", "Accepted"),
-        ("rejected", "Rejected"),
     ]
 
     user = models.ForeignKey(
@@ -36,12 +29,8 @@ class IssueReport(models.Model):
     department = models.TextField(max_length=30,default="Manual")
     confidence_score = models.FloatField(null = False,default=0.0)
     allocated_to = models.TextField(max_length=10,blank=True)
-    appeal_status = models.CharField(
-        max_length=20,
-        choices=APPEAL_STATUS_CHOICES,
-        default="not_appealed",
-    )
-    trust_score_delta = models.IntegerField(default=0)
+    appeal_status = models.CharField(max_length=20, default='not_appealed', null=True, blank=True)
+    trust_score_delta = models.IntegerField(default=0, null=True, blank=True)
     
     # Social Features
     likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='liked_reports', blank=True)

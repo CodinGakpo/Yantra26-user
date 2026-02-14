@@ -65,11 +65,6 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = self.request.user
 
-        if user.is_temporarily_deactivated:
-            raise PermissionDenied(
-                "Account is temporarily deactivated. Please wait until reactivation."
-            )
-
         profile, _ = UserProfile.objects.get_or_create(user=user)
 
         if not profile.is_aadhaar_verified or not profile.aadhaar:
@@ -277,35 +272,6 @@ class UserIssueHistoryView(generics.ListAPIView):
         return IssueReport.objects.filter(
             user=self.request.user
         ).order_by("-issue_date")
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def submit_appeal(request, report_id):
-    report = get_object_or_404(IssueReport, id=report_id, user=request.user)
-
-    if report.status != "rejected":
-        return Response(
-            {"detail": "Appeal is allowed only for rejected reports."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    if report.appeal_status != "not_appealed":
-        return Response(
-            {"detail": "Appeal has already been submitted for this report."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    report.appeal_status = "pending"
-    report.save(update_fields=["appeal_status"])
-
-    return Response(
-        {
-            "message": "Appeal submitted successfully.",
-            "appeal_status": report.appeal_status,
-        },
-        status=status.HTTP_200_OK,
-    )
 
 
 class CommentListCreateView(generics.ListCreateAPIView):

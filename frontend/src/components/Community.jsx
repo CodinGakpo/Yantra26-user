@@ -59,79 +59,49 @@ function Community() {
   };
 
   // Handle synchronous updates from PostCard interactions
-  // Updated to include interaction states
-  const handleLikeUpdate = (postId, newLikesCount, newIsLiked) => {
+  const handleLikeUpdate = (postId, newLikesCount) => {
     setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === postId 
-          ? { 
-              ...post, 
-              likes_count: newLikesCount,
-              is_liked: newIsLiked !== undefined ? newIsLiked : post.is_liked
-            }
+          ? { ...post, likes_count: newLikesCount }
           : post
       )
     );
     
     // Also update the selected post if it's open
     if (selectedPost && selectedPost.id === postId) {
-      setSelectedPost(prev => ({ 
-        ...prev, 
-        likes_count: newLikesCount,
-        is_liked: newIsLiked !== undefined ? newIsLiked : prev.is_liked
-      }));
+      setSelectedPost(prev => ({ ...prev, likes_count: newLikesCount }));
     }
   };
 
-  const handleDislikeUpdate = (postId, newDislikesCount, newIsDisliked) => {
+  const handleDislikeUpdate = (postId, newDislikesCount) => {
     setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === postId 
-          ? { 
-              ...post, 
-              dislikes_count: newDislikesCount,
-              is_disliked: newIsDisliked !== undefined ? newIsDisliked : post.is_disliked
-            }
+          ? { ...post, dislikes_count: newDislikesCount }
           : post
       )
     );
     
     // Also update the selected post if it's open
     if (selectedPost && selectedPost.id === postId) {
-      setSelectedPost(prev => ({ 
-        ...prev, 
-        dislikes_count: newDislikesCount,
-        is_disliked: newIsDisliked !== undefined ? newIsDisliked : prev.is_disliked
-      }));
+      setSelectedPost(prev => ({ ...prev, dislikes_count: newDislikesCount }));
     }
   };
 
-  // Handle updates from modal - now includes interaction states
-  const handleModalInteractionUpdate = (postId, newLikesCount, newDislikesCount, newIsLiked, newIsDisliked) => {
+  // Handle updates from modal
+  const handleModalInteractionUpdate = (postId, newLikesCount, newDislikesCount) => {
     setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === postId 
           ? { 
               ...post, 
               likes_count: newLikesCount,
-              dislikes_count: newDislikesCount,
-              is_liked: newIsLiked !== undefined ? newIsLiked : post.is_liked,
-              is_disliked: newIsDisliked !== undefined ? newIsDisliked : post.is_disliked
+              dislikes_count: newDislikesCount 
             }
           : post
       )
     );
-    
-    // Update the selected post to keep modal in sync
-    if (selectedPost && selectedPost.id === postId) {
-      setSelectedPost(prev => ({
-        ...prev,
-        likes_count: newLikesCount,
-        dislikes_count: newDislikesCount,
-        is_liked: newIsLiked !== undefined ? newIsLiked : prev.is_liked,
-        is_disliked: newIsDisliked !== undefined ? newIsDisliked : prev.is_disliked
-      }));
-    }
   };
 
   // Initial load

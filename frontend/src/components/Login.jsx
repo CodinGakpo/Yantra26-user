@@ -97,14 +97,6 @@ const Login = () => {
         localStorage.setItem("refreshToken", data.tokens.refresh);
         window.location.href = "/";
       } else {
-        if (data.code === "ACCOUNT_DEACTIVATED") {
-          setError(
-            data.activation_time
-              ? `Account activates on ${data.activation_time}`
-              : "Account is temporarily deactivated."
-          );
-          return;
-        }
         setError(
           data.otp?.[0] || data.email?.[0] || data.error || "Invalid code"
         );

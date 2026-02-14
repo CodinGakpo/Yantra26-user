@@ -13,7 +13,6 @@ urlpatterns = [
     path("<int:id>/presign-get/", presign_get_for_track, name="presign-get"),
     path("community/resolved/", CommunityResolvedIssuesView.as_view()),
     path("history/", UserIssueHistoryView.as_view(), name="user-issue-history"),
-    path("<int:report_id>/appeal/", submit_appeal, name="report-appeal"),
     
     # Social Endpoints
     path("<int:report_id>/comments/", CommentListCreateView.as_view(), name="report-comments"),
