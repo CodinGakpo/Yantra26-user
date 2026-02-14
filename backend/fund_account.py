@@ -1,6 +1,9 @@
 """
-Automatic Account Funding Script
-This will send 10 ETH from Ganache Account #0 to your account
+Account #0: 0x776FBf217DC979936B52fe756627a51A0fDa5E84 (100 ETH)
+Account #1: 0x5405Bc2481A49A917E63F0E1b7CF8e327daF14C7 (100 ETH)
+Account #2: 0x554f736862Aa55511962a24a0FE236AFE4cd75Ff (100 ETH)
+Account #3: 0x2221b31F204752fd22DA403575fa30F829aC3B1a (100 ETH)
+Account #4: 0xeDc1Babb9711D7e954cA340af0fA0B7363445ca9 (100 ETH)
 """
 
 from web3 import Web3
