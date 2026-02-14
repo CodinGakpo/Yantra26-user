@@ -1,11 +1,13 @@
 import math
 from datetime import timedelta
 
+from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import TrustScoreLog
+def _trust_score_log_model():
+    return apps.get_model("users", "TrustScoreLog")
 
 
 def calculate_deactivation_days(days_since_last_violation, b_min=1, b_max=30, d=30):
@@ -53,7 +55,7 @@ def apply_trust_score_change(
     delta,
     reason,
     report=None,
-    appeal_status=TrustScoreLog.APPEAL_NOT_APPEALED,
+    appeal_status="not_appealed",
     admin_id=None,
 ):
     """
@@ -72,7 +74,8 @@ def apply_trust_score_change(
     user.trust_score = next_score
     user.save(update_fields=["trust_score"])
 
-    TrustScoreLog.objects.create(
+    trust_score_log = _trust_score_log_model()
+    trust_score_log.objects.create(
         user=user,
         delta=applied_delta,
         reason=reason,
