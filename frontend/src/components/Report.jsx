@@ -197,20 +197,6 @@ function Report() {
       setShowUnverifiedPopup(true);
       return;
     }
-    if (userProfile?.is_temporarily_deactivated) {
-      const until = userProfile?.deactivated_until
-        ? new Date(userProfile.deactivated_until).toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-        : "later";
-      alert(`Account activates on ${until}`);
-      return;
-    }
 
     // Validation
     let hasError = false;

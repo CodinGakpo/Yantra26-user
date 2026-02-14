@@ -3,12 +3,9 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser
 from user_profile.models import UserProfile
-from .services import raise_if_user_deactivated
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user details"""
-    is_temporarily_deactivated = serializers.BooleanField(read_only=True)
-
     class Meta:
         model = CustomUser
         fields = [
@@ -20,19 +17,9 @@ class UserSerializer(serializers.ModelSerializer):
             "auth_method",
             "google_id",
             "profile_picture",
-            "trust_score",
-            "deactivated_until",
-            "is_temporarily_deactivated",
             "date_joined",
         ]
-        read_only_fields = [
-            "id",
-            "date_joined",
-            "auth_method",
-            "trust_score",
-            "deactivated_until",
-            "is_temporarily_deactivated",
-        ]
+        read_only_fields = ["id", "date_joined", "auth_method"]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -114,8 +101,6 @@ class LoginSerializer(serializers.Serializer):
                     code='authorization'
                 )
 
-            raise_if_user_deactivated(user)
-
         else:
             raise serializers.ValidationError(
                 'Must include "email" and "password".',
@@ -195,8 +180,6 @@ class VerifyOTPSerializer(serializers.Serializer):
             
             otp_obj.is_used = True
             otp_obj.save()
-
-            raise_if_user_deactivated(user)
             
             attrs['user'] = user
             return attrs

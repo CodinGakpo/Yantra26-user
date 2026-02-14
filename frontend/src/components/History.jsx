@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../AuthProvider";
-import {
-  Clipboard,
-  Check,
-  Loader2,
-  FileText,
-  Clock,
-  MapPin,
-  Send,
-} from "lucide-react";
+import { Clipboard, Check, Loader2, FileText, Clock, MapPin } from "lucide-react";
 import Navbar from "./MiniNavbar";
 import Footer from "./Footer";
 import { getApiUrl } from "../utils/api";
@@ -18,7 +10,6 @@ const History = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
-  const [appealingId, setAppealingId] = useState(null);
 
   const { getAuthHeaders, isAuthenticated, isLoading } = useAuth();
 
@@ -63,39 +54,10 @@ const History = () => {
     const styles = {
       pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
       in_progress: "bg-blue-100 text-blue-800 border-blue-300",
-      rejected: "bg-red-100 text-red-700 border-red-300",
       resolved: "bg-green-100 text-green-800 border-green-300",
     };
 
     return styles[status] || "bg-gray-100 text-gray-800 border-gray-300";
-  };
-
-  const submitAppeal = async (reportId) => {
-    try {
-      setAppealingId(reportId);
-      const headers = await getAuthHeaders();
-      const response = await fetch(getApiUrl(`/reports/${reportId}/appeal/`), {
-        method: "POST",
-        headers,
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || "Failed to submit appeal.");
-      }
-
-      setIssues((prev) =>
-        prev.map((issue) =>
-          issue.id === reportId
-            ? { ...issue, appeal_status: "pending", can_appeal: false }
-            : issue
-        )
-      );
-    } catch (err) {
-      alert(err.message || "Failed to submit appeal.");
-    } finally {
-      setAppealingId(null);
-    }
   };
 
   if (loading) {
@@ -191,11 +153,6 @@ const History = () => {
                           <h3 className="text-xl font-bold text-gray-900">
                             {issue.issue_title}
                           </h3>
-                          {issue.appeal_status !== "not_appealed" && (
-                            <p className="text-sm font-medium text-gray-600">
-                              Appeal: {issue.appeal_status.replace("_", " ").toUpperCase()}
-                            </p>
-                          )}
 
                           {/* Location & Date */}
                           <div className="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -206,7 +163,7 @@ const History = () => {
                             <div className="flex items-center gap-1.5">
                               <Clock className="w-4 h-4 text-gray-400" />
                               <span>
-                                {new Date(issue.issue_date).toLocaleDateString(
+                                {new Date(issue.created_at).toLocaleDateString(
                                   "en-IN",
                                   {
                                     day: "2-digit",
@@ -220,19 +177,7 @@ const History = () => {
                         </div>
 
                         {/* Right Section - Status */}
-                        <div className="flex items-center gap-3 flex-wrap justify-end">
-                          {issue.trust_score_delta !== 0 && (
-                            <span
-                              className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${
-                                issue.trust_score_delta < 0
-                                  ? "bg-red-50 text-red-700 border-red-200"
-                                  : "bg-green-50 text-green-700 border-green-200"
-                              }`}
-                            >
-                              {issue.trust_score_delta > 0 ? "+" : ""}
-                              {issue.trust_score_delta} trust
-                            </span>
-                          )}
+                        <div className="flex items-center gap-3">
                           <span
                             className={`px-5 py-2.5 text-sm rounded-full font-bold border-2 ${getStatusBadge(
                               issue.status
@@ -240,18 +185,6 @@ const History = () => {
                           >
                             {issue.status.replace("_", " ").toUpperCase()}
                           </span>
-                          {issue.can_appeal && (
-                            <button
-                              onClick={() => submitAppeal(issue.id)}
-                              disabled={appealingId === issue.id}
-                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                            >
-                              <Send className="w-4 h-4" />
-                              {appealingId === issue.id
-                                ? "Submitting..."
-                                : "Appeal"}
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>

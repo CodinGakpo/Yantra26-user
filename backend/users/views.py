@@ -19,7 +19,6 @@ from .serializers import (
 )
 from .email_utils import send_otp_email
 from .models import EmailOTP
-from .services import raise_if_user_deactivated
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -243,7 +242,6 @@ def google_auth_view(request):
     
     if serializer.is_valid():
         user = serializer.create_or_get_user(serializer.validated_data)
-        raise_if_user_deactivated(user)
         refresh = RefreshToken.for_user(user)
         
         return Response({
