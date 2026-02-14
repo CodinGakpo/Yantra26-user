@@ -61,6 +61,14 @@ class CustomUser(AbstractUser):
         help_text='Primary authentication method used for account creation'
     )
     
+    # Trust score system
+    trust_score = models.IntegerField(default=100, help_text='User trust score (0-110)')
+    deactivated_until = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text='User is temporarily deactivated until this time'
+    )
+    
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -71,6 +79,13 @@ class CustomUser(AbstractUser):
         """Check if user has set a usable password"""
         from django.contrib.auth.hashers import is_password_usable
         return is_password_usable(self.password)
+    
+    @property
+    def is_temporarily_deactivated(self):
+        """Check if user is currently deactivated"""
+        if not self.deactivated_until:
+            return False
+        return timezone.now() < self.deactivated_until
     
     def get_available_auth_methods(self):
         """Get list of available authentication methods for this user"""
@@ -136,3 +151,53 @@ class EmailOTP(models.Model):
             expires_at=expires_at
         )
         return otp_obj
+
+
+class TrustScoreLog(models.Model):
+    """Immutable audit log for trust score changes"""
+    
+    APPEAL_NOT_APPEALED = 'not_appealed'
+    APPEAL_PENDING = 'pending'
+    APPEAL_APPROVED = 'approved'
+    APPEAL_REJECTED = 'rejected'
+    
+    APPEAL_STATUS_CHOICES = [
+        (APPEAL_NOT_APPEALED, 'Not Appealed'),
+        (APPEAL_PENDING, 'Appeal Pending'),
+        (APPEAL_APPROVED, 'Appeal Approved'),
+        (APPEAL_REJECTED, 'Appeal Rejected'),
+    ]
+    
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='trust_score_logs'
+    )
+    delta = models.IntegerField(help_text='Change in trust score (can be negative)')
+    reason = models.TextField(help_text='Reason for trust score change')
+    report = models.ForeignKey(
+        'report.IssueReport',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text='Associated report if applicable'
+    )
+    appeal_status = models.CharField(
+        max_length=20,
+        choices=APPEAL_STATUS_CHOICES,
+        default=APPEAL_NOT_APPEALED
+    )
+    admin_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Admin user ID who made the change'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Trust Score Log'
+        verbose_name_plural = 'Trust Score Logs'
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.delta:+d} ({self.reason[:50]})"
