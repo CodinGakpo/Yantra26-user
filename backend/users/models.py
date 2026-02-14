@@ -63,7 +63,8 @@ class CustomUser(AbstractUser):
     auth_method = models.CharField(
         max_length=10, 
         choices=AUTH_METHOD_CHOICES, 
-        default='email'
+        default='email',
+        help_text='Primary authentication method used for account creation'
     )
     
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
@@ -71,6 +72,23 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = []
     
     objects = CustomUserManager()
+    
+    def has_usable_password(self):
+        """Check if user has set a usable password"""
+        from django.contrib.auth.hashers import is_password_usable
+        return is_password_usable(self.password)
+    
+    def get_available_auth_methods(self):
+        """Get list of available authentication methods for this user"""
+        methods = ['otp']  # OTP is always available
+        
+        if self.has_usable_password():
+            methods.append('password')
+        
+        if self.google_id:
+            methods.append('google')
+        
+        return methods
 
     groups = models.ManyToManyField(
         'auth.Group',

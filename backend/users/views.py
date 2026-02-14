@@ -13,6 +13,7 @@ from .serializers import (
     LoginSerializer, 
     UserSerializer,
     ChangePasswordSerializer,
+    SetPasswordSerializer,
     RequestOTPSerializer,
     VerifyOTPSerializer,
     GoogleAuthSerializer
@@ -26,10 +27,11 @@ from .services import raise_if_user_deactivated
 def register_view(request):
     """
     Register a new user with email and password
+    Also allows setting password for existing OAuth users (unified identity)
     POST /api/users/register/
     Body: {"email": "user@example.com", "password": "pass123", "password2": "pass123"}
     """
-    serializer = RegisterSerializer(data=request.data)
+    serializer = RegisterSerializer(data=request.data, context={'request': request})
     
     if serializer.is_valid():
         user = serializer.save()
@@ -45,6 +47,7 @@ def register_view(request):
             }
         }, status=status.HTTP_201_CREATED)
     
+    # Return structured error response
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -52,7 +55,7 @@ def register_view(request):
 @permission_classes([AllowAny])
 def login_view(request):
     """
-    Login with email and password
+    Login with email and password (unified identity - checks for usable password)
     POST /api/users/login/
     Body: {"email": "user@example.com", "password": "pass123"}
     """
@@ -72,6 +75,7 @@ def login_view(request):
             }
         }, status=status.HTTP_200_OK)
     
+    # Return structured error response
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -145,8 +149,7 @@ def user_profile(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
-    """
-    Change user password
+    """ (requires old password)
     POST /api/users/change-password/
     Body: {"old_password": "old", "new_password": "new", "new_password2": "new"}
     """
@@ -169,6 +172,31 @@ def change_password_view(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def set_password_view(request):
+    """
+    Set password for OAuth users who don't have a password yet
+    POST /api/users/set-password/
+    Body: {"password": "newpass123", "password2": "newpass123"}
+    """
+    serializer = SetPasswordSerializer(
+        data=request.data,
+        context={'request': request}
+    )
+    
+    if serializer.is_valid():
+        user = request.user
+        user.set_password(serializer.validated_data['password'])
+        user.save()
+        
+        return Response({
+            "message": "Password set successfully. You can now login with email and password."
+        }, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def verify_user(request):
     """Mark user as verified (you can add additional verification logic)"""
     request.user.is_verified = True
@@ -180,7 +208,7 @@ def verify_user(request):
 @permission_classes([AllowAny])
 def request_otp_view(request):
     """
-    Request OTP for email-based login
+    Request OTP for email-based login (works for all users - unified identity)
     POST /api/users/request-otp/
     Body: {"email": "user@example.com"}
     """
@@ -198,10 +226,14 @@ def request_otp_view(request):
                 'expires_in': '10 minutes'
             }, status=status.HTTP_200_OK)
         else:
-            return Response({
-                'error': 'Failed to send email. Please try again.'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from .auth_errors import AuthErrorCodes, AuthErrorMessages, create_error_response
+            error = create_error_response(
+                AuthErrorCodes.OTP_SEND_FAILED,
+                AuthErrorMessages.OTP_SEND_FAILED
+            )
+            return Response(error, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    # Return structured error response
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -209,7 +241,7 @@ def request_otp_view(request):
 @permission_classes([AllowAny])
 def verify_otp_view(request):
     """
-    Verify OTP and login user
+    Verify OTP and login user (creates user if doesn't exist - unified identity)
     POST /api/users/verify-otp/
     Body: {"email": "user@example.com", "otp": "123456"}
     """
@@ -228,6 +260,7 @@ def verify_otp_view(request):
             }
         }, status=status.HTTP_200_OK)
     
+    # Return structured error response
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -235,7 +268,7 @@ def verify_otp_view(request):
 @permission_classes([AllowAny])
 def google_auth_view(request):
     """
-    Authenticate with Google OAuth
+    Authenticate with Google OAuth (unified identity - links to existing user by email)
     POST /api/users/google-auth/
     Body: {"token": "google_oauth_token"}
     """
@@ -255,4 +288,5 @@ def google_auth_view(request):
             }
         }, status=status.HTTP_200_OK)
     
+    # Return structured error response
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

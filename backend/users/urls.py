@@ -21,5 +21,6 @@ urlpatterns = [
     path('me/', views.current_user_view, name='current-user'),
     path('profile/', views.user_profile, name='user-profile'),
     path('change-password/', views.change_password_view, name='change-password'),
+    path('set-password/', views.set_password_view, name='set-password'),
     path('verify/', views.verify_user, name='verify-user'),
 ]
