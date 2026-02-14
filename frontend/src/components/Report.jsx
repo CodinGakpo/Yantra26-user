@@ -40,6 +40,7 @@ function Report() {
   const [rateLimitMessage, setRateLimitMessage] = useState(
     "You cannot post any report until 12:00 AM IST."
   );
+  const [isRateLimitedToday, setIsRateLimitedToday] = useState(false);
   const INDIA_CENTER = [20.5937, 78.9629];
   const [mapCenter, setMapCenter] = useState(INDIA_CENTER);
   const [mapZoom, setMapZoom] = useState(5);
@@ -83,6 +84,32 @@ function Report() {
       }
     };
     if (user) fetchUserProfile();
+  }, [user, getAuthHeaders]);
+
+  useEffect(() => {
+    const fetchSubmissionEligibility = async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(getApiUrl("/reports/eligibility/"), { headers });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.can_submit === false) {
+          setIsRateLimitedToday(true);
+          const retryLabel = data.retry_at_label || "12:00 AM IST";
+          setRateLimitMessage(
+            `You have reached the daily report limit. You cannot post any report until ${retryLabel}.`
+          );
+          setShowRateLimitPopup(true);
+        } else {
+          setIsRateLimitedToday(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch report eligibility:", error);
+      }
+    };
+
+    if (user) fetchSubmissionEligibility();
   }, [user, getAuthHeaders]);
 
   useEffect(() => {
@@ -199,6 +226,10 @@ function Report() {
 
     if (!userProfile?.is_aadhaar_verified) {
       setShowUnverifiedPopup(true);
+      return;
+    }
+    if (isRateLimitedToday) {
+      setShowRateLimitPopup(true);
       return;
     }
     if (userProfile?.is_temporarily_deactivated) {
