@@ -33,7 +33,7 @@ def get_daily_report_limit_status(user):
         issue_date__lt=next_midnight_utc,
     ).count()
 
-    daily_limit = 4
+    daily_limit = 5 #change to 4
     return {
         "count": submission_count,
         "limit": daily_limit,

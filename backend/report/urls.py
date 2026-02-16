@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     IssueReportListCreateView, presign_s3, presign_get_for_track,
     CommunityResolvedIssuesView, UserIssueHistoryView,
-    CommentListCreateView, ToggleLikeView, ToggleDislikeView, submit_appeal,
+    CommentListCreateView, ToggleLikeView, ToggleDislikeView,
     ReportEligibilityView,
 )
 

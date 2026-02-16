@@ -8,6 +8,11 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 
 import os
+
+# Use PyMySQL as MySQLdb replacement
+import pymysql
+pymysql.install_as_MySQLdb()
+
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault(

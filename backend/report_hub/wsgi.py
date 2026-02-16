@@ -8,6 +8,11 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
+
+# Use PyMySQL as MySQLdb replacement
+import pymysql
+pymysql.install_as_MySQLdb()
+
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault(

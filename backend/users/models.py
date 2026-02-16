@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -49,13 +50,8 @@ class CustomUser(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     profile_picture = models.URLField(max_length=500, null=True, blank=True)
-    trust_score = models.IntegerField(
-        default=100,
-        validators=[MinValueValidator(0), MaxValueValidator(110)],
-    )
     incentive_reward_granted = models.BooleanField(default=False)
     incentive_reward_amount = models.PositiveIntegerField(default=0)
-    deactivated_until = models.DateTimeField(null=True, blank=True)
     
     AUTH_METHOD_CHOICES = [
         ('email', 'Email/JWT'),
@@ -69,7 +65,11 @@ class CustomUser(AbstractUser):
     )
     
     # Trust score system
-    trust_score = models.IntegerField(default=100, help_text='User trust score (0-110)')
+    trust_score = models.IntegerField(
+        default=100,
+        validators=[MinValueValidator(0), MaxValueValidator(110)],
+        help_text='User trust score (0-110)'
+    )
     deactivated_until = models.DateTimeField(
         null=True, 
         blank=True, 
