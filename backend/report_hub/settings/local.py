@@ -22,6 +22,30 @@ REST_FRAMEWORK = {
     ],
 }
 
+from .base import *
+
+DEBUG = True
+
+ALLOWED_HOSTS = ['*']
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
 # Use SQLite for local development
 # DATABASES = {
 #     "default": {
@@ -30,18 +54,20 @@ REST_FRAMEWORK = {
 #     }
 # }
 
-# Use MySQL for production (uncomment below and comment SQLite above)
+# Use Neon DB (PostgreSQL) for development
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
+        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT", "3306"),
+        "PORT": os.getenv("DB_PORT", "5432"),
+        "ATOMIC_REQUESTS": True,
+        "CONN_MAX_AGE": 600,
         "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            "charset": "utf8mb4",
+        "sslmode": "require",
+        "connect_timeout": 10,
         },
     }
 }

@@ -14,7 +14,7 @@ function Community() {
 
   // State for the modal
   const [selectedPost, setSelectedPost] = useState(null);
-  
+  4
   const observerRef = useRef(null);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
