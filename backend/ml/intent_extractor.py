@@ -1,13 +1,16 @@
 # backend/ml/intent_extractor.py
 """
 Intent Extractor using Ollama LLM
-Validates and extracts core civic issue from user input
+Validates and extracts core civic issue from user input.
 """
 
-import requests
+import os
 from typing import Optional
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+import requests
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:latest")
 
 PROMPT = """You are given a civic complaint.
 
@@ -34,54 +37,74 @@ Complaint:
 Response:"""
 
 
-def extract_intent_or_invalid(title: str, description: str, timeout: int = 10) -> Optional[str]:
+def _call_chat_endpoint(complaint: str, timeout: int) -> Optional[str]:
+    response = requests.post(
+        f"{OLLAMA_BASE_URL}/api/chat",
+        json={
+            "model": OLLAMA_MODEL,
+            "messages": [{"role": "user", "content": PROMPT.format(complaint=complaint)}],
+            "stream": False,
+            "options": {"temperature": 0.3},
+        },
+        timeout=timeout,
+    )
+
+    if response.status_code == 404:
+        return None
+
+    response.raise_for_status()
+    data = response.json()
+    return (data.get("message", {}) or {}).get("content", "").strip()
+
+
+def _call_generate_endpoint(complaint: str, timeout: int) -> str:
+    response = requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json={
+            "model": OLLAMA_MODEL,
+            "prompt": PROMPT.format(complaint=complaint),
+            "stream": False,
+            "options": {"temperature": 0.3},
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data.get("response", "").strip()
+
+
+def extract_intent_or_invalid(title: str, description: str, timeout: int = 20) -> Optional[str]:
     """
-    Extract intent from complaint or return INVALID
-    
-    Args:
-        title: Issue title
-        description: Issue description
-        timeout: Request timeout in seconds
-        
+    Extract intent from complaint or return INVALID.
+
     Returns:
-        Extracted intent or "INVALID", or None if Ollama is unavailable
+        Extracted intent or "INVALID", or None if Ollama is unavailable.
     """
     complaint = f"{title}\n{description}".strip()
-    
-    print(f"\nINTENT EXTRACTION:")
+
+    print("\nINTENT EXTRACTION:")
     print(f"   Input: '{complaint[:80]}...'")
-    
+
     if not complaint:
-        print(f"   → Empty input, returning INVALID")
+        print("   -> Empty input, returning INVALID")
         return "INVALID"
-    
+
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "qwen2.5:1.5b-instruct",
-                "prompt": PROMPT.format(complaint=complaint),
-                "stream": False,
-                "options": {
-                    "temperature": 0.3
-                }
-            },
-            timeout=timeout
-        )
-        response.raise_for_status()
-        result = response.json()["response"].strip()
-        
-        print(f"   → Ollama response: '{result}'")
+        result = _call_chat_endpoint(complaint, timeout)
+        if result is None:
+            result = _call_generate_endpoint(complaint, timeout)
+
+        print(f"   -> Ollama response: '{result}'")
         return result
-        
+
     except requests.exceptions.Timeout:
-        print(f"   →   Ollama request timed out after {timeout}s")
+        print(f"   -> Ollama request timed out after {timeout}s")
         return None
-        
+
     except requests.exceptions.ConnectionError:
-        print("   →  Cannot connect to Ollama. Make sure Ollama is running on localhost:11434")
+        print(f"   -> Cannot connect to Ollama at {OLLAMA_BASE_URL}")
         return None
-        
+
     except Exception as e:
-        print(f"   → Error extracting intent: {e}")
+        print(f"   -> Error extracting intent: {e}")
         return None

@@ -4,7 +4,6 @@ FIXED: Index-safe mapping, CNN-compatible output
 """
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from .intent_extractor import extract_intent_or_invalid
 
 DEPARTMENTS = {
@@ -37,6 +36,14 @@ def get_embedder():
 
     if _embedder is None:
         print("Loading sentence-transformers model...")
+        try:
+            from sentence_transformers import SentenceTransformer
+        except Exception as e:
+            raise RuntimeError(
+                f"sentence-transformers is unavailable. "
+                f"Install missing dependencies (e.g. lru-dict). Root error: {e}"
+            ) from e
+
         _embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
         dept_texts = list(DEPARTMENTS.values())
@@ -72,7 +79,16 @@ def route_issue(title: str, description: str) -> dict:
             "intent": intent
         }
 
-    embedder, dept_embeds = get_embedder()
+    try:
+        embedder, dept_embeds = get_embedder()
+    except Exception as e:
+        print(f"   -> Text model unavailable: {e}")
+        return {
+            "status": "OLLAMA_ERROR",
+            "department": None,
+            "confidence": 0.0,
+            "detail": str(e),
+        }
 
     intent_embed = embedder.encode(
         intent,

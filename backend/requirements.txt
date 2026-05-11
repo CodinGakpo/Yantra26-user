@@ -111,7 +111,9 @@ tzdata==2025.3
 urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.6.0
-web3==6.15.0
+# web3 stack is optional for local ML/report flow.
+# If needed later for blockchain features, install in an environment with C++ build tools.
+# web3==6.15.0
 websockets==16.0
 Werkzeug==3.1.5
 wheel==0.45.1
