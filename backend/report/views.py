@@ -97,13 +97,8 @@ class IssueReportListCreateView(generics.ListCreateAPIView):
 @permission_classes([IsAuthenticated])
 def presign_s3(request):
     """
-    Return Firebase Storage upload URL for direct image upload.
-    
-    Firebase Storage uses a different approach than S3 presigned URLs.
-    For client-side uploads, we return information needed for the frontend
-    to upload directly to Firebase.
-    
-    Frontend expects: { url, key, bucket }
+    Return Firebase Storage signed upload URL for direct image upload.
+    Frontend expects: { url, key, bucket, provider }
     """
     file_name = request.data.get("fileName")
     content_type = request.data.get("contentType")
@@ -129,10 +124,15 @@ def presign_s3(request):
         unique_id = uuid.uuid4().hex
         key = f"reports/{unique_id}-{file_name}"
         
-        # For Firebase, we return the bucket name and path
-        # The frontend will need to use Firebase SDK to upload
+        # Generate HTTPS signed PUT URL so frontend can upload via fetch().
+        upload_url = firebase_service.get_upload_signed_url(
+            blob_path=key,
+            content_type=content_type,
+            expiration_hours=1,
+        )
+
         return Response({
-            "url": f"gs://{bucket_name}/{key}",
+            "url": upload_url,
             "key": key,
             "bucket": bucket_name,
             "provider": "firebase"
@@ -142,6 +142,51 @@ def presign_s3(request):
         print("Firebase upload preparation error:", e)
         return Response(
             {"detail": "Could not prepare upload URL"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_image(request):
+    """
+    Upload image via backend to Firebase Storage.
+    This avoids browser CORS/preflight issues with direct bucket PUT uploads.
+    Expects multipart/form-data with `file`.
+    """
+    uploaded_file = request.FILES.get("file")
+    if not uploaded_file:
+        return Response(
+            {"detail": "file is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    content_type = uploaded_file.content_type or "application/octet-stream"
+    if not content_type.startswith("image/"):
+        return Response(
+            {"detail": "Only image files are allowed"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        firebase_service = get_firebase_storage_service()
+        result = firebase_service.upload_image(
+            file_content=uploaded_file.read(),
+            file_name=uploaded_file.name,
+            content_type=content_type,
+        )
+        return Response(
+            {
+                "key": result["key"],
+                "url": result.get("url"),
+                "provider": "firebase",
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    except Exception as e:
+        print("Firebase backend upload error:", e)
+        return Response(
+            {"detail": "Could not upload image"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 

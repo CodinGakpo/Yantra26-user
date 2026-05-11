@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    IssueReportListCreateView, presign_s3, presign_get_for_track,
+    IssueReportListCreateView, presign_s3, presign_get_for_track, upload_image,
     CommunityResolvedIssuesView, UserIssueHistoryView,
     CommentListCreateView, ToggleLikeView, ToggleDislikeView, submit_appeal,
     ReportEligibilityView,
@@ -10,6 +10,7 @@ urlpatterns = [
     path("", IssueReportListCreateView.as_view(), name="report-management"),
     path("eligibility/", ReportEligibilityView.as_view(), name="report-eligibility"),
     path("s3/presign/", presign_s3, name="presign-s3"),
+    path("upload/", upload_image, name="report-upload-image"),
     path("<int:id>/presign-get/", presign_get_for_track, name="presign-get"),
     path("community/resolved/", CommunityResolvedIssuesView.as_view()),
     path("history/", UserIssueHistoryView.as_view(), name="user-issue-history"),

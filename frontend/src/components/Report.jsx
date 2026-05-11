@@ -174,29 +174,25 @@ function Report() {
   const uploadFileToS3 = async (file) => {
     const authHeaders =
       typeof getAuthHeaders === "function" ? await getAuthHeaders() : {};
+    const uploadHeaders = { ...authHeaders };
+    delete uploadHeaders["Content-Type"];
+    delete uploadHeaders["content-type"];
 
-    const presignResp = await fetch(getApiUrl("/reports/s3/presign/"), {
+    const form = new FormData();
+    form.append("file", file);
+
+    const uploadResp = await fetch(getApiUrl("/reports/upload/"), {
       method: "POST",
-      headers: { ...authHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+      headers: uploadHeaders,
+      body: form,
     });
 
-    if (!presignResp.ok) {
-      const err = await presignResp.text();
-      throw new Error("Presign failed: " + err);
-    }
-    const { url: presignedUrl, key } = await presignResp.json();
-
-    const putResp = await fetch(presignedUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    if (!putResp.ok) {
-      const txt = await putResp.text();
-      throw new Error("S3 upload failed: " + txt);
+    if (!uploadResp.ok) {
+      const txt = await uploadResp.text();
+      throw new Error("Image upload failed: " + txt);
     }
 
+    const { key } = await uploadResp.json();
     return { key };
   };
 

@@ -133,6 +133,31 @@ class FirebaseStorageService:
         
         except Exception as e:
             raise Exception(f"Failed to generate presigned URL: {str(e)}")
+
+    def get_upload_signed_url(self, blob_path, content_type, expiration_hours=1):
+        """
+        Generate a signed URL for direct browser upload (HTTP PUT).
+
+        Args:
+            blob_path: Path to the blob in Firebase Storage
+            content_type: MIME type expected for upload
+            expiration_hours: Number of hours the URL is valid
+
+        Returns:
+            str: Signed upload URL (HTTPS)
+        """
+        try:
+            bucket = storage.bucket()
+            blob = bucket.blob(blob_path)
+
+            return blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(hours=expiration_hours),
+                method="PUT",
+                content_type=content_type,
+            )
+        except Exception as e:
+            raise Exception(f"Failed to generate upload signed URL: {str(e)}")
     
     def delete_image(self, blob_path):
         """
